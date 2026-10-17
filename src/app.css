@@ -370,3 +370,6 @@ body.is-welcome>.topbar,body.is-welcome>.layout{visibility:hidden}
 .property-view .table-scroll{scrollbar-width:thin}
 .legacy-section .detail-data-table th,.legacy-section .detail-data-table td{word-break:normal;overflow-wrap:break-word}
 @media(max-width:700px){.graph-kpis,.photo-gallery,.legacy-section .detail-accordion-body.detail-facts{grid-template-columns:1fr}}
+
+/* O nome do arquivo mantém maiúsculas e minúsculas originais. */
+#currentMapName{text-transform:none!important;letter-spacing:.1px}
