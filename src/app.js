@@ -635,7 +635,7 @@
         (panel.previousElementSibling?.textContent || '');
       const isGraph=/gr[aá]fic|proje|hist[oó]ric|chart/i.test(title) ||
         /gr[aá]fic|proje|hist[oó]ric/i.test(panel.textContent.slice(0,160));
-      if(!isGraph) continue;
+      if(!isGraph || panel.querySelector('.api-graphs')) continue;
       const years=[];
       for(const tr of panel.querySelectorAll('tr')) {
         const td=tr.querySelectorAll('td,th');
@@ -965,6 +965,186 @@
       if(source.textContent.trim()||source.querySelector('table,img,a'))view.appendChild(detail);
     }
   }
+
+  const API_GRAPH_FLAGS=[
+    ['anual','Anual'],['mensal','Mensal'],['media_movel','Média móvel'],
+    ['tend_hist','Tendência histórica'],['tend_rec','Tendência recente'],
+    ['publicadores','Publicadores'],['p50_visivel','P50'],['p70_visivel','P70']
+  ];
+  function acceptedGraphUrl(raw) {
+    try {
+      const url=new URL(raw);
+      // O arquivo pode conter URLs arbitrárias. Nunca requisitar outros hosts.
+      if(url.protocol!=='https:'||url.hostname!=='grafico-api.onrender.com'||url.pathname!=='/api/grafico')return null;
+      if(!url.searchParams.has('congregacao')||!url.searchParams.has('anos_anuais'))return null;
+      return url;
+    }catch(_){return null;}
+  }
+  function extractKmlApiGraphs(raw) {
+    // DOMParser não executa o JS original. Evitar também src de imagens externas
+    // na leitura: as imagens serão carregadas apenas pelo botão explícito.
+    const inert=String(raw||'').replace(/<img\b[^>]*>/gi,tag=>tag.replace(/\s+src\s*=/i,' data-original-src='));
+    const doc=new DOMParser().parseFromString(inert,'text/html');
+    const graphs=[];
+    for(const card of doc.querySelectorAll('.graphCard,.chartCard')){
+      const candidate=card.querySelector('img[data-base]')?.getAttribute('data-base')
+        || card.querySelector('a[href*="grafico-api.onrender.com/api/grafico"]')?.getAttribute('href');
+      const url=acceptedGraphUrl(candidate);
+      if(!url)continue;
+      const title=card.querySelector('.chartTitle')?.textContent.trim()||'Congregação';
+      const meta=card.querySelector('.chartMeta')?.textContent.replace(/\s+/g,' ').trim()||'';
+      const badges=[...card.querySelectorAll('.badge')].map(n=>n.textContent.trim()).filter(Boolean);
+      graphs.push({title,meta,badges,url});
+    }
+    if(!graphs.length)return null;
+    const metrics=[];
+    for(const card of doc.querySelectorAll('.metricCard')){
+      const label=card.querySelector('.metricLabel')?.textContent.trim();
+      const value=card.querySelector('.metricValue')?.textContent.trim();
+      if(label&&value)metrics.push({label,value});
+    }
+    const status=doc.querySelector('.seatPanel .statusBox')?.textContent.trim()||'';
+    const calculations=[];
+    for(const row of doc.querySelectorAll('#graphCalcPanel tr')){
+      const cells=row.querySelectorAll('td,th');
+      if(cells.length>=2)calculations.push([cells[0].textContent.trim(),cells[1].textContent.trim()]);
+    }
+    const calcNote=doc.querySelector('#graphCalcPanel .smallNote')?.textContent.trim()||'';
+    return {graphs,metrics,status,calculations,calcNote};
+  }
+  function renderKmlApiGraphs(view,raw) {
+    const source=extractKmlApiGraphs(raw);
+    if(!source)return false;
+    const data=elText('div','api-graphs','');
+    const flags=Object.fromEntries(API_GRAPH_FLAGS.map(([key])=>[key,['anual','tend_hist','publicadores','p50_visivel'].includes(key)]));
+    const config={mode:'geral'};
+    const graphItems=[];
+    const controls=elText('section','api-graph-toolbar','');
+    const headline=elText('div','api-graph-heading','');
+    headline.append(elText('h3','','Histórico e projeções por congregação'),
+      elText('p','',source.graphs.length+' congregação(ões) com gráfico disponível na API original.'));
+    controls.appendChild(headline);
+    const buttons=elText('div','api-graph-presets','');
+    const presets=[['geral','Padrão'],['recente','Recente'],['detalhado','Detalhada']];
+    function syncOptions(){
+      for(const [key] of API_GRAPH_FLAGS)optionInputs[key].checked=flags[key];
+      for(const btn of buttons.querySelectorAll('button'))btn.classList.toggle('is-active',btn.dataset.mode===config.mode);
+    }
+    const optionInputs={};
+    for(const [mode,label] of presets){
+      const b=elText('button','api-graph-preset',label);
+      b.type='button';b.dataset.mode=mode;
+      b.addEventListener('click',()=>{
+        config.mode=mode;
+        for(const key in flags)flags[key]=false;
+        if(mode==='recente'){flags.mensal=true;flags.media_movel=true;flags.tend_rec=true;}
+        else{
+          flags.anual=true;flags.tend_hist=true;
+          if(mode==='detalhado'){flags.mensal=true;flags.media_movel=true;flags.tend_rec=true;flags.p70_visivel=true;}
+        }
+        flags.publicadores=true;flags.p50_visivel=true;
+        syncOptions();
+        // Igual ao VBA: após escolher preset, os gráficos já carregados são atualizados.
+        if(graphItems.some(g=>g.loaded))loadAll();
+      });
+      buttons.appendChild(b);
+    }
+    controls.append(elText('p','api-graph-control-title','Configuração de todas as congregações'),buttons);
+    const choices=elText('div','api-graph-options','');
+    for(const [key,label] of API_GRAPH_FLAGS){
+      const item=document.createElement('label');
+      const checkbox=document.createElement('input');
+      checkbox.type='checkbox';checkbox.checked=flags[key];
+      checkbox.addEventListener('change',()=>{flags[key]=checkbox.checked;});
+      optionInputs[key]=checkbox;
+      item.append(checkbox,document.createTextNode(label));
+      choices.appendChild(item);
+    }
+    controls.appendChild(choices);
+    const actions=elText('div','api-graph-actions','');
+    const loadButton=elText('button','btn btn-main api-graph-load','Carregar gráficos pela API');
+    loadButton.type='button';
+    const applyButton=elText('button','btn api-graph-apply','Aplicar a todas');
+    applyButton.type='button';
+    applyButton.disabled=true;
+    const privacy=elText('p','api-graph-privacy',
+      'Ao carregar, o navegador envia os dados históricos e as projeções contidos no link do KML à API externa grafico-api.onrender.com. Nenhum gráfico é requisitado antes do clique.');
+    actions.append(loadButton,applyButton);
+    controls.append(actions,privacy);
+    data.appendChild(controls);
+    if(source.metrics.length){
+      const metrics=elText('div','graph-kpis','');
+      for(const metric of source.metrics){
+        const card=elText('div','graph-kpi','');
+        card.append(elText('small','',metric.label),elText('strong','',metric.value));
+        metrics.appendChild(card);
+      }
+      data.insertBefore(metrics,controls);
+    }
+    if(source.status)data.insertBefore(elText('div','api-capacity-status',source.status),controls);
+    const list=elText('div','api-graph-list','');
+    for(const graph of source.graphs){
+      const card=elText('article','api-graph-card','');
+      const heading=elText('h4','',graph.title);
+      const badges=elText('div','api-graph-badges','');
+      for(const badge of graph.badges)badges.appendChild(elText('span','api-graph-badge',badge));
+      card.append(heading,badges);
+      if(graph.meta)card.appendChild(elText('p','api-graph-meta',graph.meta));
+      const message=elText('p','api-graph-message','Clique em “Carregar gráficos pela API” para visualizar.');
+      const image=document.createElement('img');
+      image.className='api-graph-image';image.alt='Gráfico de histórico e projeções de '+graph.title;
+      image.loading='eager';image.referrerPolicy='no-referrer';image.hidden=true;
+      const external=document.createElement('a');
+      external.className='api-graph-open';external.textContent='Abrir gráfico em nova janela';
+      external.target='_blank';external.rel='noopener noreferrer';external.hidden=true;
+      card.append(message,image,external);
+      list.appendChild(card);
+      graphItems.push({graph,message,image,external,loaded:false,requestId:0});
+    }
+    data.appendChild(list);
+    const calculations=elText('details','api-graph-calculations','');
+    calculations.appendChild(elText('summary','','Cálculos detalhados'));
+    if(source.calculations.length){
+      const table=document.createElement('table');
+      for(const [label,value] of source.calculations){
+        const row=table.insertRow();row.insertCell().textContent=label;row.insertCell().textContent=value;
+      }
+      calculations.appendChild(table);
+    }
+    if(source.calcNote)calculations.appendChild(elText('p','api-graph-calc-note',source.calcNote));
+    if(source.calculations.length||source.calcNote)data.appendChild(calculations);
+    function loadAll(){
+      loadButton.textContent='Atualizar gráficos';
+      applyButton.disabled=false;
+      for(const item of graphItems){
+        const request=new URL(item.graph.url.href);
+        request.searchParams.set('modo',config.mode);
+        for(const [key] of API_GRAPH_FLAGS)request.searchParams.set(key,flags[key]?'1':'0');
+        const fullUrl=request.href;
+        const requestId=++item.requestId;
+        item.loaded=true;
+        item.message.hidden=false;item.message.textContent='Carregando gráfico…';
+        item.image.hidden=true;item.external.hidden=false;item.external.href=fullUrl;
+        item.image.onload=()=>{
+          if(item.requestId!==requestId)return;
+          item.image.hidden=false;item.message.hidden=true;
+        };
+        item.image.onerror=()=>{
+          if(item.requestId!==requestId)return;
+          item.image.hidden=true;
+          item.message.hidden=false;
+          item.message.textContent='Não foi possível carregar a imagem. Use “Abrir gráfico em nova janela” ou tente novamente.';
+        };
+        // Este é o único ponto em que os dados históricos são enviados à API.
+        item.image.src=fullUrl;
+      }
+    }
+    loadButton.addEventListener('click',loadAll);
+    applyButton.addEventListener('click',loadAll);
+    syncOptions();
+    view.replaceChildren(data);
+    return true;
+  }
   function renderDomainDetail(feature,body) {
     const overview=renderOverview(feature,getFacts(feature));
     const description=safeDescription(feature.description);
@@ -985,8 +1165,10 @@
       // Retira o painel do HTML sanitizado, preservando apenas seu conteúdo.
       const panel=section.node;
       view.append(...[...panel.childNodes]);
-      formatLegacyContent(view);
-      enhanceMediaSections(view,label);
+      if(!(/gr[aá]fic|proje/i.test(label) && renderKmlApiGraphs(view,feature.description))){
+        formatLegacyContent(view);
+        enhanceMediaSections(view,label);
+      }
       entries.push({label,root:view});
     }
     if(!sections.length&&feature.description.trim()) {
