@@ -27,7 +27,7 @@ try {
   await page.locator('#upload').setInputFiles(sample);
   await page.locator('#totalCount').filter({ hasText: '4' }).waitFor();
   assert.equal(await page.locator('.result').count(), 4, 'KML deve fornecer quatro marcadores');
-  assert.equal(await page.locator('#groupCount').innerText(), '4', 'Pastas devem ser interpretadas');
+  assert.equal(await page.locator('#groupCount').innerText(), '3', 'Grupos com marcadores devem ser interpretados');
 
   await page.locator('#search').fill('BRA9902');
   await page.locator('#filteredCount').filter({ hasText: '1' }).waitFor();
