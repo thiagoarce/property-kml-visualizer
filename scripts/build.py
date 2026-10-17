@@ -14,6 +14,7 @@ styles = [
 scripts = [
     ("../vendor/leaflet.min.js", ROOT / "vendor" / "leaflet.min.js"),
     ("../vendor/leaflet.markercluster.js", ROOT / "vendor" / "leaflet.markercluster.js"),
+    ("./brazil-states.js", ROOT / "src" / "brazil-states.js"),
     ("./app.js", ROOT / "src" / "app.js"),
 ]
 for href, filename in styles:
