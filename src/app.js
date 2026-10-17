@@ -332,6 +332,39 @@
       return u.hostname === 'grafico-api.onrender.com';
     } catch (_) { return false; }
   }
+  // Nomes do SharePoint não devem aparecer como sequências %20/%C3%A7.
+  function readablePhotoName(raw){
+    let name='';
+    try{name=new URL(raw).pathname.split('/').pop()||'';}
+    catch(_){name=String(raw).split(/[/?#]/).pop()||'';}
+    for(let i=0;i<2;i++){
+      try{const decoded=decodeURIComponent(name.replace(/\+/g,'%20'));if(decoded===name)break;name=decoded;}
+      catch(_){break;}
+    }
+    name=name.replace(/^BRA\d+[\s_-]+/i,'').replace(/\s+/g,' ').trim();
+    return name||'Foto do imóvel';
+  }
+  function excelDate(label,value){
+    const str=String(value||'').trim();
+    if(!/(?:in[ií]cio|fim|t[eé]rmino|vencimento).*contrato|data.*(?:contrato|loca[cç][aã]o)/i.test(label))return str;
+    const n=Number(str.replace(',','.'));
+    if(!/^\d{5}(?:[.,]0+)?$/.test(str)||n<20000||n>80000)return str;
+    const date=new Date(Date.UTC(1899,11,30)+n*86400000);
+    return Number.isFinite(date.getTime())?date.toLocaleDateString('pt-BR',{timeZone:'UTC'}):str;
+  }
+  function displayLeaseDates(root){
+    for(const field of root.querySelectorAll('.detail-field')){
+      const label=field.querySelector('.detail-field-label')?.textContent||'';
+      const value=field.querySelector('.detail-field-value');
+      if(value&&value.children.length===0)value.textContent=excelDate(label,value.textContent);
+    }
+    for(const row of root.querySelectorAll('tr')){
+      const cells=[...row.children].filter(c=>/^(TD|TH)$/.test(c.tagName));
+      for(let i=0;i+1<cells.length;i+=2){
+        if(!cells[i+1].children.length)cells[i+1].textContent=excelDate(cells[i].textContent,cells[i+1].textContent);
+      }
+    }
+  }
   function copySafe(dst, node) {
     if (node.nodeType === Node.TEXT_NODE) { dst.appendChild(document.createTextNode(node.nodeValue || '')); return; }
     if (node.nodeType !== Node.ELEMENT_NODE) return;
@@ -370,7 +403,7 @@
           // A imagem só faz requisição ao SharePoint após este clique.
           img.src = src;
         });
-        const photoName=elText('span','photo-caption',src.split('/').pop()?.split('?')[0]||'Imagem do SharePoint');
+        const photoName=elText('span','photo-caption',readablePhotoName(src));
         gallery.append(photoName,button,open);
         dst.appendChild(gallery);
       }
@@ -794,6 +827,7 @@
         }
         for(let i=0;i<cells.length;i+=2) {
           const label=cells[i].textContent.trim();
+          if(destination!==grid&&/^(?:status do local|[aá]rea do local|[aá]rea da constru[cç][aã]o|endere[cç]o|cidade|propriet[aá]rio|localiza[cç][aã]o)/i.test(label))destination=grid;
           if(!label&&!cells[i+1].textContent.trim())continue;
           const field=elText('div','detail-field','');
           field.appendChild(elText('dt','detail-field-label',label||'Informação'));
@@ -805,6 +839,7 @@
       }
       table.replaceWith(grid);
     }
+    displayLeaseDates(content);
     for(const button of [...content.querySelectorAll('button')]) {
       if(button.classList.contains('photo-load-button')||button.classList.contains('legacy-reveal'))continue;
       if(!button.closest('.detail-group-row'))continue;
@@ -906,6 +941,7 @@
         trigger.remove();
         const raw=safeDescription(feature.description);
         original.appendChild(raw);
+        formatLegacyContent(raw);
         activateTabs(raw);
         updateDetailPreferences();
       },{once:true});
