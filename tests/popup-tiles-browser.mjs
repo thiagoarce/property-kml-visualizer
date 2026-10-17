@@ -52,7 +52,7 @@ try{
  await page.locator('#showMetrics').uncheck();
  await page.locator('.property-nav-tab').filter({hasText:'Visão geral'}).click();
  assert.equal(await page.locator('.metric-grid').isVisible(),false);
- await page.locator('.property-nav-tab').filter({hasText:'Fonte original'}).click();
+ await page.locator('.property-nav-tab').filter({hasText:'Dados completos'}).click();
  await page.locator('.legacy-reveal').click();
  assert.ok(await page.locator('.legacy-source .description .tabs').count(),'Estrutura original permanece acessível sob solicitação');
  assert.equal(external.length,0);
