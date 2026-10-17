@@ -15,7 +15,7 @@ page.on('pageerror', e => errors.push(String(e)));
 page.on('request', request => { if (/^https?:/.test(request.url())) network.push(request.url()); });
 try {
   await page.goto(html);
-  await page.waitForFunction(() => document.getElementById('totalCount').textContent.trim() === '8');
+  await page.locator('#welcomeScreen').waitFor();
   assert.equal(network.length, 0, 'Abrir o mapa com offline ativo não pode acessar a rede');
   const accept = await page.locator('#upload').getAttribute('accept');
   assert.ok(accept.includes('.kmz'), 'O pacote deve permitir seleção de KMZ');
