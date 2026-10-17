@@ -65,3 +65,30 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
 .legend-note{font-size:10px;color:#6c8792;margin:0;padding:8px 11px;border-top:1px solid #e5ebed;line-height:1.4}
 .legend-entries[hidden],.legend-note[hidden],#legendClear[hidden]{display:none!important}
 @media(max-width:640px){.map-legend{bottom:28px;left:8px;max-height:27vh;width:218px}.legend-entries{max-height:18vh}}
+
+/* Perfis SRs / Vendas: uma legenda explicativa e popups amplos, sem texto bruto. */
+.semantic-legend{padding:10px 12px 8px;background:#eff6f6;border-bottom:1px solid #d8e5e8}
+.semantic-legend strong{font-size:11px;color:#173e50;display:block;margin-bottom:5px}
+.semantic-legend p,.semantic-legend small{font-size:10px;line-height:1.45;color:#51717e;margin:5px 0;display:block}
+.meaning-row{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#476675;margin:5px 8px 2px 0}
+.meaning-swatch{height:10px;width:10px;border-radius:3px;display:inline-block;border:1px solid #ffffff;box-shadow:0 0 0 1px #afc5ca}
+[data-map-profile="srs"] .map-legend,[data-map-profile="vendas"] .map-legend{max-height:51vh}
+[data-map-profile="srs"] .details,[data-map-profile="vendas"] .details{width:min(540px,calc(100% - 32px));top:64px;bottom:24px}
+[data-map-profile="srs"] .detail-body,[data-map-profile="vendas"] .detail-body{padding:18px 19px;font-size:12px}
+.detail-body .description{font-size:12px;line-height:1.58;color:#244451}
+.description .tabs{position:sticky;top:-18px;z-index:2;background:#fff;padding:8px 0!important;margin:0 0 14px!important;display:flex;flex-wrap:nowrap;gap:7px;overflow-x:auto;scrollbar-width:thin;border-bottom:1px solid #dae6e9;white-space:nowrap}
+.description .tabs button{border:1px solid #d9e5e9!important;background:#f4f7f8!important;font-size:11px!important;font-weight:650!important;border-radius:7px!important;padding:9px 11px!important;white-space:nowrap;flex:none}
+.description .tabs button.active{background:#d7ecf1!important;color:#146881!important;border-color:#b4d7df!important}
+.description .tabcontent{min-width:0}
+.description table{width:100%;table-layout:auto;border-collapse:collapse;font-size:11px;line-height:1.45}
+.description table td,.description table th{min-width:0;word-break:break-word;overflow-wrap:anywhere;border:1px solid #d9e4e8;padding:8px 10px}
+.description table th{background:#eff6f7;color:#26536a;font-weight:700}
+.description table tr:nth-child(even) td{background:#fafcfc}
+.description p{margin:7px 0 11px}
+.description h2,.description h3{color:#1d4659;margin:12px 0 7px}
+.photo-action{padding:11px;margin:8px 0;border:1px solid #d6e5e9;border-radius:9px;background:#f5fafb;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.photo-load-button{border:1px solid #a9ced8;background:#e5f3f6;color:#1c657c;border-radius:7px;font:inherit;font-size:11px;font-weight:700;padding:7px 10px;cursor:pointer}
+.photo-load-button[disabled]{opacity:.7;cursor:progress}
+.sharepoint-photo{display:block;max-width:100%;max-height:240px;object-fit:contain;border-radius:6px}
+.chart-external-warning{display:block;padding:10px;border-left:3px solid #b3843f;background:#fcf7ea;color:#745627;font-size:11px;line-height:1.45;margin:6px 0}
+@media(max-width:640px){[data-map-profile="srs"] .details,[data-map-profile="vendas"] .details{width:calc(100% - 16px);right:8px;top:60px;bottom:35px}.semantic-legend{padding:7px 10px}.description .tabs{top:-15px}}
