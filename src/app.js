@@ -685,7 +685,9 @@
       });
       const chart=elText('section','local-chart','');
       chart.append(elText('strong','','Evolução histórica — dados do arquivo'),svg);
-      panel.insertBefore(chart,panel.firstChild);
+      const dashboard=panel.querySelector('.graph-dashboard');
+      if(dashboard)dashboard.appendChild(chart);
+      else panel.insertBefore(chart,panel.firstChild);
     }
   }
   // Painel SRs/Vendas: o resumo novo vem primeiro; o HTML legado não é duplicado
@@ -897,42 +899,70 @@
       }
     }
     if(/gr[aá]fic|proje/i.test(label)){
-      for(const button of [...view.querySelectorAll('button')]){
-        if(/^(ajustar gr[aá]ficos|padr[aã]o|recente|detalhada|aplicar a todas|c[aá]lculos detalhados)$/i.test(button.textContent.trim()))
-          button.remove();
+      // Este painel nunca executa a API remota de gráficos; usa apenas o KML.
+      const fullText=view.textContent.replace(/\s+/g,' ').trim();
+      const specs=[
+        {name:'Capacidade primária',type:'capacity'},
+        {name:'Assistência base média',type:'attendance'},
+        {name:'Necessários hoje (90%)',type:'needed'},
+        {name:'Com até 20% remoto',type:'remote'}
+      ];
+      const metrics=specs.map(spec=>{
+        const escaped=spec.name.replaceAll('(','\\(').replaceAll(')','\\)');
+        const match=fullText.match(new RegExp(escaped+'\\s*[:–—-]?\\s*(\\d{1,6})(?!\\d)','i'));
+        return {...spec,value:match?Number(match[1]):null};
+      }).filter(m=>m.value!==null&&Number.isFinite(m.value));
+      // Preserva os cálculos originais recolhidos, sem duplicar os KPIs.
+      const source=elText('div','graph-source-content','');
+      while(view.firstChild)source.appendChild(view.firstChild);
+      for(const button of [...source.querySelectorAll('button')]){
+        if(/^(ajustar gr[aá]ficos|padr[aã]o|recente|detalhada|aplicar a todas|c[aá]lculos detalhados)$/i.test(button.textContent.trim()))button.remove();
       }
-      for(const node of [...view.querySelectorAll('*')]){
-        if(node.children.length===0&&/carregando gr[aá]fico/i.test(node.textContent))
-          node.textContent='';
+      for(const warning of source.querySelectorAll('.chart-external-warning'))warning.remove();
+      for(const node of [...source.querySelectorAll('*')]){
+        if(!node.children.length&&/carregando gr[aá]fico/i.test(node.textContent))node.remove();
       }
-      const warnings=[...view.querySelectorAll('.chart-external-warning')];
-      if(warnings.length){
-        const notice=elText('div','graph-notice',
-          'Os gráficos completos exigem séries históricas que ainda não estão incluídas neste KML. Nenhum dado foi enviado a serviços externos.');
-        warnings[0].replaceWith(notice);
-        warnings.slice(1).forEach(n=>n.remove());
-      }
-      const content=view.textContent.replace(/\s+/g,' ');
-      const keys=['Capacidade primária','Assistência base média','Necessários hoje (90%)','Com até 20% remoto'];
-      const metrics=elText('div','graph-kpis','');
-      for(const key of keys){
-        const pattern=new RegExp(key.replace(/[()]/g,'\\$&')+'\\s*[:–-]?\\s*(\\d{1,6})','i');
-        const value=content.match(pattern)?.[1];
-        if(value){
+      const dashboard=elText('div','graph-dashboard','');
+      if(metrics.length){
+        const kpis=elText('div','graph-kpis','');
+        for(const metric of metrics){
           const card=elText('div','graph-kpi','');
-          card.append(elText('small','',key),elText('strong','',Number(value).toLocaleString('pt-BR')));
-          metrics.append(card);
+          card.append(elText('small','',metric.name),elText('strong','',metric.value.toLocaleString('pt-BR')));
+          kpis.appendChild(card);
+        }
+        dashboard.appendChild(kpis);
+        const capacity=metrics.find(m=>m.type==='capacity')?.value;
+        if(capacity>0){
+          const comparison=elText('section','graph-comparison','');
+          comparison.appendChild(elText('h3','','Capacidade e assistência'));
+          comparison.appendChild(elText('p','graph-help','Comparativo calculado somente com os valores presentes neste KML.'));
+          const maxValue=Math.max(capacity,...metrics.map(m=>m.value),1);
+          for(const metric of metrics){
+            const line=elText('div','graph-bar-row','');
+            const heading=elText('div','graph-bar-head','');
+            heading.append(elText('span','',metric.name),elText('strong','',metric.value.toLocaleString('pt-BR')));
+            const track=elText('div','graph-bar-track','');
+            const bar=elText('div','graph-bar-fill graph-bar-'+metric.type,'');
+            bar.style.width=Math.max(metric.value>0?1:0,Math.min(100,metric.value/maxValue*100))+'%';
+            track.appendChild(bar);
+            line.append(heading,track);
+            comparison.appendChild(line);
+          }
+          const attendance=metrics.find(m=>m.type==='attendance')?.value;
+          if(Number.isFinite(attendance)){
+            comparison.appendChild(elText('p','graph-occupancy','Assistência base / capacidade: '+(attendance/capacity*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%.'));
+          }
+          dashboard.appendChild(comparison);
         }
       }
-      if(metrics.children.length){
-        view.prepend(metrics);
-        // Remove linhas redundantes, mas mantém qualquer série histórica real.
-        for(const node of [...view.querySelectorAll('p,div,span')].reverse()){
-          if(node.closest('.graph-kpis,.graph-notice,.local-chart')||node.children.length>1)continue;
-          const value=node.textContent.replace(/\s+/g,' ').trim();
-          if(keys.some(key=>new RegExp('^'+key.replaceAll('(','\\(').replaceAll(')','\\)')+'\\s*[:–-]?\\s*\\d{1,6}$','i').test(value)))node.remove();
-        }
-      }
+      const detail=document.createElement('details');
+      detail.className='graph-source';
+      detail.append(elText('summary','','Dados e premissas do KML'),source);
+      view.appendChild(dashboard);
+      const note=elText('p','graph-notice',
+        'Séries históricas completas só aparecem quando incluídas no KML. Os gráficos originais externos não são executados e nenhum dado do arquivo é enviado.');
+      view.appendChild(note);
+      if(source.textContent.trim()||source.querySelector('table,img,a'))view.appendChild(detail);
     }
   }
   function renderDomainDetail(feature,body) {
