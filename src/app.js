@@ -836,23 +836,303 @@
     }
     $('legendClear').hidden=!state.iconFilter;
   }
+
+  // Índice de análise totalmente local. A malha pública dos estados já está
+  // incorporada ao HTML; não usamos geocoding, IA ou servidores de consulta.
+  const UF_CODES = 'AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO'.split(' ');
+  function stateRegions() {
+    function ringsOf(geometry) {
+      if (!geometry) return [];
+      if (geometry.type === 'Polygon') return [geometry.coordinates];
+      if (geometry.type === 'MultiPolygon') return geometry.coordinates;
+      return [];
+    }
+    return BRAZIL_STATES_GEOJSON.features.map(f => {
+      const polygons = ringsOf(f.geometry).map(poly => poly.map(ring => {
+        const xs=ring.map(c=>c[0]), ys=ring.map(c=>c[1]);
+        return {ring,bbox:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]};
+      }));
+      const all=polygons.flat().map(p=>p.bbox);
+      return { uf:f.properties?.sigla, polygons, bbox:[
+        Math.min(...all.map(b=>b[0])),Math.min(...all.map(b=>b[1])),
+        Math.max(...all.map(b=>b[2])),Math.max(...all.map(b=>b[3]))
+      ] };
+    }).filter(x=>UF_CODES.includes(x.uf));
+  }
+  const regions=stateRegions();
+  function ringContains(ring,lon,lat) {
+    let inside=false;
+    for(let i=0,j=ring.length-1;i<ring.length;j=i++) {
+      const x=ring[i][0],y=ring[i][1],a=ring[j][0],b=ring[j][1];
+      if((y>lat)!==(b>lat) && lon<(a-x)*(lat-y)/(b-y)+x)inside=!inside;
+    }
+    return inside;
+  }
+  function stateFromCoordinates(pos) {
+    const [lat,lon]=pos;
+    for(const r of regions) {
+      const b=r.bbox;
+      if(lon<b[0]||lon>b[2]||lat<b[1]||lat>b[3])continue;
+      for(const poly of r.polygons) {
+        if(!poly.length)continue;
+        const outer=poly[0],box=outer.bbox;
+        if(lon<box[0]||lon>box[2]||lat<box[1]||lat>box[3])continue;
+        if(!ringContains(outer.ring,lon,lat))continue;
+        if(!poly.slice(1).some(h=>ringContains(h.ring,lon,lat)))return r.uf;
+      }
+    }
+    return '';
+  }
+  function extractUF(f) {
+    const source=Object.entries(f.metadata||{});
+    for(const [key,value] of source) {
+      const k=normalizeField(key);
+      if(!['uf','estado','sigla do estado','estado uf','cidade uf'].includes(k))continue;
+      const s=String(value||'').trim().toUpperCase();
+      const matched=s.match(/(?:^|\/\s*|\b)(AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO)\b/);
+      if(matched)return matched[1];
+    }
+    // UF geográfica é preferível a confundir abreviações dentro do nome do REC.
+    return stateFromCoordinates(f.pos);
+  }
+  function extractMacro(f) {
+    const found=f.path.find(x=>/^macro\s*\d+\b/i.test(x));
+    if(found)return (found.match(/macro\s*\d+/i)||[])[0]?.replace(/^macro/i,'Macro')||'';
+    for(const [k,v] of Object.entries(f.metadata||{}))if(normalizeField(k)==='macro')return String(v).trim();
+    return '';
+  }
+  function extractREC(f) {
+    const found=f.path.find(x=>/^REC[\s_-]/i.test(x));
+    if(found)return found.replace(/\s*\(\d+\)\s*$/,'').trim();
+    for(const [k,v] of Object.entries(f.metadata||{}))if(normalizeField(k)==='rec')return String(v).trim();
+    return '';
+  }
+  function exactCongregations(f) {
+    for(const [k,v] of Object.entries(f.metadata||{})){
+      if(!/^(?:qtd|quantidade|n[uú]mero|total|congrega(?:ç|c)(?:õ|o)es locais)/i.test(normalizeField(k)))continue;
+      if(!/congreg/.test(normalizeField(k)))continue;
+      if(/^\s*\d{1,3}\s*$/.test(String(v)))return Number(v);
+    }
+    const fragment=String(f.description||'').slice(0,90000);
+    // Extrai somente valores explicitamente nomeados no formulário do KML.
+    const html=fragment.match(/(?:congrega(?:ç|c)(?:õ|o)es locais|quantidade de congrega(?:ç|c)(?:õ|o)es|qtd(?:\.| de)? congrega(?:ç|c)(?:õ|o)es)\s*<\/t[dh]>\s*<t[dh][^>]*>\s*(\d{1,3})\s*</i);
+    if(html)return Number(html[1]);
+    const plain=fragment.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+    const direct=plain.match(/(?:quantidade de congrega(?:ç|c)(?:õ|o)es|congrega(?:ç|c)(?:õ|o)es locais)\s*[:=]\s*(\d{1,3})(?:\s|$)/i);
+    return direct?Number(direct[1]):null;
+  }
+  function countBucket(f,exact) {
+    if(exact!==null&&exact!==undefined) return exact>=5?'5+':String(exact);
+    const value=String(f.color||'').toLowerCase();
+    if(!/^#[0-9a-f]{6}$/.test(value))return '';
+    const rgb=[1,3,5].map(i=>parseInt(value.slice(i,i+2),16));
+    const colors=[['1',[153,0,0]],['2',[255,255,0]],['3',[0,255,0]],['4',[0,0,255]],['5+',[0,0,0]],['unique',[255,165,0]]];
+    const sorted=colors.map(([key,p])=>({key,dist:Math.hypot(...rgb.map((x,i)=>x-p[i]))})).sort((a,b)=>a.dist-b.dist);
+    return sorted[0].dist<=85?sorted[0].key:'';
+  }
+  function categoryStatus(f) {
+    if(state.profile==='vendas')return getSaleStatus(f) || 'Não informado';
+    const color=String(f.labelColor||'').toLowerCase();
+    if(/^#[0-9a-f]{6}$/.test(color)){
+      const [r,g,b]=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+      if(r>190&&g<120&&b<140)return 'Grandes Projetos';
+      if(g>150&&b>150&&r<145)return 'Pequena Reforma';
+      if(Math.abs(r-g)<35&&Math.abs(g-b)<35&&r>90&&r<205)return 'Aluguel';
+      if(g>135&&r<125&&b<150)return 'Sem caso · próprio pós-1999';
+      if(r>210&&g>210&&b>210)return 'Sem caso';
+    }
+    return getCaseStatus(f)?.label||'Não informado';
+  }
+  function enrichFeature(f) {
+    f.analysis={
+      uf:extractUF(f),macro:extractMacro(f),rec:extractREC(f),
+      exact:state.profile==='srs' ? exactCongregations(f) : null,
+      bucket:'',status:categoryStatus(f)
+    };
+    f.analysis.bucket=state.profile==='srs' ? countBucket(f,f.analysis.exact):'';
+  }
+  function appendOptions(select, values, allText) {
+    const chosen=select.value;
+    select.replaceChildren();
+    const all=document.createElement('option');all.value='';all.textContent=allText;
+    select.append(all);
+    for(const v of values){
+      if(!v)continue;
+      const option=document.createElement('option');
+      option.value=v;option.textContent=v;select.append(option);
+    }
+    if(values.includes(chosen))select.value=chosen;
+  }
+  function buildAnalysisOptions() {
+    const fields=state.features.map(f=>f.analysis||{});
+    const unique=(key)=>[...new Set(fields.map(x=>x[key]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+    appendOptions($('stateFilter'),unique('uf'),'Todas as UFs');
+    appendOptions($('macroFilter'),unique('macro'),'Todas as Macros');
+    appendOptions($('recFilter'),unique('rec'),'Todos os RECs');
+    const types=[...new Set(state.features.map(x=>x.propertyType).filter(Boolean))];
+    const typeOptions=$('propertyFilter');
+    typeOptions.replaceChildren();
+    const first=document.createElement('option');first.value='';first.textContent='Todos os tipos';typeOptions.append(first);
+    for(const key of types){const op=document.createElement('option');op.value=key;op.textContent=SEMANTIC_TYPES[key]||key;typeOptions.append(op);}
+    appendOptions($('caseFilter'),unique('status'),'Todas as situações');
+    $('congFilter').disabled=state.profile!=='srs';
+    $('analysisResult').hidden=true;
+    $('groupStats').hidden=true;
+  }
+  function clearAnalysis() {
+    for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy']){
+      $(name).value='';
+    }
+    $('search').value='';
+    $('question').value='';
+    $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
+    state.typeFilter='';state.iconFilter='';
+    updateFilters(true);
+  }
+  function interpretQuestion(question) {
+    const q=normalizeField(question);
+    if(!q)return;
+    const detected=[];
+    // Reconhece consultas limitadas. Não envia texto à IA nem executa código do usuário.
+    const uf=(q.match(/\b(?:em|no|na|de|do|estado de)\s+(ac|al|am|ap|ba|ce|df|es|go|ma|mg|ms|mt|pa|pb|pe|pi|pr|rj|rn|ro|rr|rs|sc|se|sp|to)\b/)||[])[1];
+    if(uf){$('stateFilter').value=uf.toUpperCase();detected.push('UF '+uf.toUpperCase());}
+    const macro=q.match(/\bmacro\s*(\d{1,2})\b/);
+    if(macro) {
+      const item=[...$('macroFilter').options].find(x=>normalizeField(x.value)===('macro '+macro[1]));
+      if(item){$('macroFilter').value=item.value;detected.push(item.value);}
+    }
+    let threshold='';
+    if(/\bmais de\s*5\b|\b(?:acima de|superior a)\s*5\b|\b(?:6 ou mais|6\+)\b/.test(q))threshold='6+';
+    else if(/\b(?:5 ou mais|pelo menos 5|5\+)\b/.test(q))threshold='5+';
+    else if(/\b(?:uma|1)\s+congregac/.test(q))threshold='1';
+    if(threshold&&state.profile==='srs'){
+      $('congFilter').value=threshold;
+      detected.push(threshold==='6+'?'Mais de 5 congregações (candidatos incluídos)':'5 ou mais congregações');
+    }
+    const status= q.includes('grandes projetos')?'Grandes Projetos':
+      q.includes('pequena reforma')?'Pequena Reforma':
+      q.includes('aprovado para futura venda')?'Aprovado para futura venda':'';
+    if(status&&[...$('caseFilter').options].some(o=>o.value===status)){
+      $('caseFilter').value=status;detected.push(status);
+    }
+    if(/\b(?:saloes|salao|salas de reuniao)\b/.test(q)){
+      if([...$('propertyFilter').options].some(x=>x.value==='hall')){
+        $('propertyFilter').value='hall';detected.push('Salões do Reino');
+      }
+    }
+    if(/\bterrenos?\b/.test(q)) {
+      if([...$('propertyFilter').options].some(x=>x.value==='plot')){
+        $('propertyFilter').value='plot';detected.push('Terrenos');
+      }
+    }
+    if(!detected.length) {
+      $('questionHint').textContent='Não reconheci critérios nessa frase. Use UF, Macro, congregações, status ou tipo de imóvel nos filtros.';
+      return;
+    }
+    $('search').value='';
+    $('questionHint').textContent='Interpretado: '+detected.join(' · ');
+    $('groupBy').value='';updateFilters(true);
+  }
+  function analysisMatches(f) {
+    const a=f.analysis||{};
+    if($('stateFilter').value&&a.uf!==$('stateFilter').value)return false;
+    if($('macroFilter').value&&a.macro!==$('macroFilter').value)return false;
+    if($('recFilter').value&&a.rec!==$('recFilter').value)return false;
+    if($('propertyFilter').value&&f.propertyType!==$('propertyFilter').value)return false;
+    if($('caseFilter').value&&a.status!==$('caseFilter').value)return false;
+    const count=$('congFilter').value;
+    if(count){
+      if(count==='unknown'&&a.exact===null&&a.bucket==='')return true;
+      if(count==='unknown')return false;
+      if(count==='unique'&&a.bucket!=='unique')return false;
+      if(count==='5+' && !(a.exact!==null?a.exact>=5:a.bucket==='5+'))return false;
+      if(count==='6+' && !(a.exact!==null?a.exact>=6:a.bucket==='5+'))return false;
+      if(/^[1-4]$/.test(count)&&!(a.exact!==null?a.exact===Number(count):a.bucket===count))return false;
+    }
+    return true;
+  }
+  function groupName(f,key){
+    const a=f.analysis||{};
+    if(key==='uf')return a.uf||'Não identificado';
+    if(key==='macro')return a.macro||'Não identificado';
+    if(key==='rec')return a.rec||'Não identificado';
+    if(key==='type')return SEMANTIC_TYPES[f.propertyType]||'Não identificado';
+    if(key==='cong')return a.exact!==null&&a.exact!==undefined
+      ? a.exact+' congregação(ões)' : ({'5+':'5 ou mais','unique':'Única na cidade'}[a.bucket]||a.bucket||'Não identificado');
+    if(key==='status')return a.status||'Não identificado';
+    return '';
+  }
+  function updateAnalysisView() {
+    const selected=$('congFilter').value;
+    const banner=$('analysisResult'),groups=$('groupStats');
+    const hasAnalysis=['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter']
+      .some(id=>!!$(id).value)||!!$('question').value;
+    banner.hidden=!hasAnalysis;
+    if(hasAnalysis) {
+      const count=state.filtered.length;
+      const suffix=selected==='6+'?' candidatos': ' locais';
+      let summary=count.toLocaleString('pt-BR')+suffix+' encontrados nos filtros atuais.';
+      if(selected==='6+'){
+        const uncertain=state.filtered.filter(f=>f.analysis.exact===null).length;
+        if(uncertain)summary+=' Atenção: '+uncertain.toLocaleString('pt-BR')+
+          ' têm apenas a categoria de cor “5 ou mais”; não é possível afirmar que sejam 6+ sem a quantidade exata.';
+      }else if(selected==='5+'){
+        const onlyColor=state.filtered.filter(f=>f.analysis.exact===null).length;
+        if(onlyColor)summary+=' '+onlyColor.toLocaleString('pt-BR')+' classificados pela cor do ícone (5+).';
+      }
+      banner.textContent=summary;
+    }
+    groups.replaceChildren();
+    const key=$('groupBy').value;
+    groups.hidden=!key;
+    if(!key)return;
+    const counts=new Map();
+    for(const f of state.filtered){
+      const text=groupName(f,key);
+      counts.set(text,(counts.get(text)||0)+1);
+    }
+    const title=elText('strong','group-title','Agrupamento — '+counts.size+' categorias');
+    groups.append(title);
+    for(const [name,count] of [...counts].sort((a,b)=>b[1]-a[1]).slice(0,25)){
+      const row=elText('div','group-stat','');
+      row.append(elText('span','',name),elText('b','',count.toLocaleString('pt-BR')));
+      groups.append(row);
+    }
+  }
+  function exportAnalysisCSV() {
+    if(!state.filtered.length){showToast('Nenhum resultado para exportar.');return;}
+    const heading=['BRA / Nome','Tipo','UF','Macro','REC','Congregações exatas','Categoria por cor','Situação','Latitude','Longitude'];
+    const body=[heading,...state.filtered.map(f=>[
+      f.name,SEMANTIC_TYPES[f.propertyType]||'',f.analysis.uf,f.analysis.macro,f.analysis.rec,
+      f.analysis.exact===null?'':String(f.analysis.exact),f.analysis.bucket,f.analysis.status,
+      f.pos[0].toFixed(6),f.pos[1].toFixed(6)
+    ])];
+    const csv='\uFEFF'+body.map(row=>row.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='Mapa_Filtrado_'+Date.now()+'.csv';
+    document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
   function updateFilters(fit = false) {
-    state.group = $('groups').value;
-    state.search = $('search').value.trim().toLocaleLowerCase('pt-BR');
-    state.filtered = state.features.filter(f => {
-      const group = f.path.join(' / ');
-      if (state.group && group !== state.group) return false;
-      if (state.iconFilter && iconKey(f) !== state.iconFilter) return false;
-      if (state.typeFilter && f.propertyType !== state.typeFilter) return false;
-      if (!state.search) return true;
-      const hay = (f.name + ' ' + group + ' ' + Object.values(f.metadata).join(' ')).toLocaleLowerCase('pt-BR');
+    state.group=$('groups').value;
+    state.search=$('search').value.trim().toLocaleLowerCase('pt-BR');
+    state.filtered=state.features.filter(f=>{
+      const group=f.path.join(' / ');
+      if(state.group&&group!==state.group)return false;
+      if(state.iconFilter&&iconKey(f)!==state.iconFilter)return false;
+      if(state.typeFilter&&f.propertyType!==state.typeFilter)return false;
+      if(!analysisMatches(f))return false;
+      if(!state.search)return true;
+      const hay=(f.name+' '+group+' '+Object.values(f.metadata).join(' ')+' '+
+        (f.analysis?.uf||'')+' '+(f.analysis?.rec||'')).toLocaleLowerCase('pt-BR');
       return hay.includes(state.search);
     });
-    $('filteredCount').textContent = state.filtered.length.toLocaleString('pt-BR');
-    $('foundCount').textContent = state.filtered.length.toLocaleString('pt-BR');
+    $('filteredCount').textContent=state.filtered.length.toLocaleString('pt-BR');
+    $('foundCount').textContent=state.filtered.length.toLocaleString('pt-BR');
     renderList();
     renderMap(fit);
     renderLegend();
+    updateAnalysisView();
   }
   function install(parsed) {
     resetDetail();
@@ -864,6 +1144,11 @@
     state.fileName = parsed.fileName;
     state.profile = mapProfile(parsed.fileName, parsed.features);
     if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
+    for(const f of state.features)enrichFeature(f);
+    for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'])$(name).value='';
+    $('question').value='';
+    $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
+    buildAnalysisOptions();
     showProfile();
     $('fileName').textContent = parsed.fileName;
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
@@ -1049,6 +1334,16 @@
     $('legendFooter').hidden = expanded;
   });
   $('legendClear').addEventListener('click', () => { state.iconFilter = ''; state.typeFilter='';updateFilters(false); });
+  for(const key of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter']) {
+    $(key).addEventListener('change',()=>updateFilters(true));
+  }
+  $('groupBy').addEventListener('change',updateAnalysisView);
+  $('askButton').addEventListener('click',()=>interpretQuestion($('question').value));
+  $('question').addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();interpretQuestion($('question').value);}
+  });
+  $('clearAdvanced').addEventListener('click',clearAnalysis);
+  $('exportFiltered').addEventListener('click',exportAnalysisCSV);
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
   $('demoButton').addEventListener('click', loadDemo);
