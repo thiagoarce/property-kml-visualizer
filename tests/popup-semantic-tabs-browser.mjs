@@ -37,7 +37,7 @@ const xml='<?xml version="1.0"?><kml xmlns="http://www.opengis.net/kml/2.2"><Doc
  '<Point><coordinates>-34.88,-8.05,0</coordinates></Point></Placemark></Document></kml>';
 try{
  await page.goto('file://'+path.join(root,'dist','Visualizador_KML_OpenFreeMap.html'));
- await page.waitForFunction(() => document.getElementById('totalCount').textContent.trim() === '8');
+ await page.locator('#welcomeScreen').waitFor();
  await page.locator('#upload').setInputFiles({name:'SRs.kml',mimeType:'application/vnd.google-earth.kml+xml',buffer:Buffer.from(xml)});
  await page.waitForFunction(()=>document.querySelector('#fileName').textContent.trim()==='SRs.kml');
  await page.locator('.result').first().click();
