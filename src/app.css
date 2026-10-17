@@ -203,3 +203,54 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
 .group-stat{display:flex;gap:6px;justify-content:space-between;align-items:center;padding:5px 1px;border-bottom:1px solid #edf2f3;color:#4b6974;font-size:10.5px}
 .group-stat b{font-variant-numeric:tabular-nums;color:#1d526c}
 @media(max-width:840px){.facet-grid{grid-template-columns:1fr}.territory-panel summary .analysis-hint{display:none}}
+
+/* 2026: painel de produtividade — os dados legados ficam em abas sob demanda. */
+.property-nav{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:5px;overflow-x:auto;scrollbar-width:thin;background:#fff;border-bottom:1px solid #dce9ec;margin:0 -20px;padding:12px 20px 10px;box-shadow:0 2px 9px #183e5011}
+.property-nav-tab{border:1px solid #dce7ea;border-radius:8px;background:#f4f8f9;color:#597582;font-size:11px;font-weight:700;padding:10px 12px;white-space:nowrap;flex:none}
+.property-nav-tab:hover{background:#e9f4f7}
+.property-nav-tab.is-active{background:#187d9b;color:#fff;border-color:#187d9b}
+.property-sections{min-height:180px}
+.property-view[hidden],.map-legend[hidden],.map-status[hidden]{display:none!important}
+.property-main .property-overview{border-bottom:0;padding-top:19px}
+.legacy-section{padding:18px 0 22px;font-size:12px;line-height:1.6}
+.legacy-section>.tabcontent,.legacy-section>.tab-pane,.legacy-section>.tab-panel{display:block!important}
+.legacy-section table{margin:5px 0 14px}
+.legacy-section a{color:#126b84}
+.legacy-source{padding:18px 0 24px}
+.legacy-source .description{font-size:11px}
+.legacy-source .tabs{position:static!important}
+.legacy-reveal{border:1px solid #c6dfe7;color:#176c86;background:#edf6f8;border-radius:8px;padding:10px;font-size:11px;font-weight:700}
+.legacy-help{color:#758e97;font-size:11px;line-height:1.6}
+.hide-metrics .metric-grid{display:none!important}
+.hide-empty-fields .field-is-empty{display:none!important}
+[data-map-profile="srs"] .detail-body,[data-map-profile="vendas"] .detail-body{padding-top:0}
+.sidebar-collapsed .layout{grid-template-columns:0 minmax(0,1fr)}
+.sidebar-collapsed .sidebar{visibility:hidden;pointer-events:none;overflow:hidden;border:0}
+.btn-quiet{border-color:#345a66;background:#173d4d;color:#dff0f3}
+.btn-quiet:hover{background:#23546a;color:#fff}
+.basemap-control{display:flex;align-items:center;gap:8px;border:1px solid #d8e5e9;background:#fff;border-radius:9px;padding:5px 9px;color:#65808d;box-shadow:0 3px 15px #132e3e22;font-size:10px;font-weight:700}
+.basemap-control select{border:0;min-width:130px;max-width:195px;color:#1b485d;background:#fff;font-size:11px;font-weight:700;padding:5px 1px;cursor:pointer}
+.display-menu{position:relative;font-size:11px}
+.display-menu>summary{list-style:none;cursor:pointer;background:#fff;border:1px solid #d8e5e9;border-radius:9px;padding:11px 12px;font-weight:800;color:#1e4b5f;box-shadow:0 3px 15px #132e3e22}
+.display-menu>summary::-webkit-details-marker{display:none}
+.display-menu[open]>summary{background:#dceef2}
+.display-options{position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #d3e4e9;border-radius:11px;box-shadow:0 8px 27px #183b4d44;padding:11px;min-width:200px;display:flex;flex-direction:column;gap:2px;z-index:1000}
+.display-options label{display:flex;align-items:center;gap:8px;white-space:nowrap;padding:8px 6px;color:#355a6d;cursor:pointer}
+.display-options label:hover{background:#f0f7f8;border-radius:6px}
+.display-options input{accent-color:#197f9b}
+#mapLegend[hidden]{display:none!important}
+@media(max-width:900px){
+ .topactions .btn-quiet{padding:8px 9px;font-size:10px}
+ .basemap-control{gap:4px;padding:4px}
+ .basemap-control select{min-width:85px;max-width:120px}
+ .controls{gap:5px}
+ .display-menu>summary{padding:9px}
+ .property-nav{margin:0 -14px;padding:8px 14px}
+}
+@media(max-width:640px){
+ .topactions .btn-quiet{font-size:10px;padding:6px}
+ .basemap-control{font-size:0}
+ .basemap-control select{max-width:120px;font-size:11px}
+ .controls .btn{display:none}
+ .display-options{min-width:178px}
+}
