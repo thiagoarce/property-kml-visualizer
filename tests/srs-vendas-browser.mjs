@@ -26,7 +26,7 @@ try {
    '<a href="https://grafico-api.onrender.com/api/grafico?x=999">Abrir gráfico externo</a></div>' +
    '<div class="tabcontent" id="fotos"><img src="https://jwsite.sharepoint.com/sites/ficticio/photo.jpg" alt="Foto fictícia"></div>';
  await page.locator('#upload').setInputFiles(file(point(srDesc,'BRA9901'), 'SRs.kml'));
- await page.locator('#fileName').filter({hasText:'SRs.kml'}).waitFor();
+ await page.waitForFunction(() => document.getElementById('fileName').textContent.trim() === 'SRs.kml');
  assert.equal(await page.locator('body').getAttribute('data-map-profile'),'srs');
  assert.ok(await page.getByText('Como interpretar o mapa SRs').count());
  await page.locator('.result').first().click();
