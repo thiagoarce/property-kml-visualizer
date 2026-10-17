@@ -477,16 +477,184 @@
     showToast.timer = setTimeout(() => { el.hidden = true; }, 6300);
   }
   function resetDetail() { $('detail').hidden = true; $('detailBody').replaceChildren(); state.selected = null; }
+  function normalizeField(s) {
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function getFacts(feature) {
+    const fields = new Map();
+    function add(k,v) {
+      const key=normalizeField(k);
+      const val=String(v || '').replace(/\s+/g,' ').trim();
+      if(key && val && val.length < 600 && !fields.has(key)) fields.set(key,val);
+    }
+    for(const [k,v] of Object.entries(feature.metadata)) add(k,v);
+    const doc = new DOMParser().parseFromString(feature.description || '', 'text/html');
+    const rows=doc.querySelectorAll('tr');
+    for(const tr of rows) {
+      const cells=[...tr.children].filter(c=>/^(TD|TH)$/.test(c.tagName));
+      // Aceita tanto tabelas de 2 como de 4 colunas de formulário.
+      for(let i=0;i+1<cells.length;i+=2) add(cells[i].textContent,cells[i+1].textContent);
+    }
+    return fields;
+  }
+  function fact(facts, ...keys) {
+    for(const key of keys) {
+      const v=facts.get(normalizeField(key));
+      if(v && v !== '-' && v !== '—') return v;
+    }
+    return '';
+  }
+  function elText(tag,cls,content) {
+    const e=document.createElement(tag);
+    if(cls)e.className=cls;
+    e.textContent=String(content);
+    return e;
+  }
+  function appendMetric(parent,label,value,major=false) {
+    if(!value) return;
+    const card=elText('div','metric-card'+(major?' metric-major':''),'');
+    card.append(elText('span','metric-label',label),elText('strong','metric-value',value));
+    parent.appendChild(card);
+  }
+  function renderOverview(feature,facts) {
+    const wrapper=elText('section','property-overview','');
+    const meaning=visualMeaning(feature);
+    const top=elText('div','property-identity','');
+    const pict=elText('span','property-symbol','');
+    pict.innerHTML=semanticSvg(feature,34);
+    const lines=elText('div','identity-text','');
+    lines.append(elText('div','identity-kicker',state.profile==='vendas'?'PATRIMÔNIO · VENDAS':'PATRIMÔNIO · SRs'));
+    lines.append(elText('strong','identity-title',meaning.typeName));
+    top.append(pict,lines);
+    wrapper.appendChild(top);
+    const badges=elText('div','property-badges','');
+    function badge(label,kind='') {
+      if(label)badges.appendChild(elText('span','property-badge '+kind,label));
+    }
+    badge(fact(facts,'Tipo de Posse'));
+    badge(fact(facts,'Status do Local','Status de Locação'));
+    if(meaning.caseInfo)badge(meaning.caseInfo.label, meaning.caseInfo.level);
+    if(meaning.sale)badge(meaning.sale,meaning.sale.startsWith('Aprovado')?'danger':'sale');
+    const city=fact(facts,'Cidade');
+    const rec=fact(facts,'REC');
+    if(city)badge(city);
+    if(badges.children.length)wrapper.appendChild(badges);
+    if(rec)wrapper.appendChild(elText('div','identity-rec',rec));
+    const grid=elText('div','metric-grid','');
+    if(state.profile==='vendas') {
+      appendMetric(grid,'Preço de venda',fact(facts,'Preço de venda','Preço','Valor de Venda'),true);
+      appendMetric(grid,'Área do terreno',fact(facts,'Área do terreno','Área do Local'));
+      appendMetric(grid,'Área construída',fact(facts,'Área construída','Área da Construção'));
+      appendMetric(grid,'Tipo de posse',fact(facts,'Tipo de posse'));
+    }else {
+      appendMetric(grid,'Capacidade',fact(facts,'Capacidade','Capacidade primária','Capacidade do auditório'));
+      appendMetric(grid,'Congregações',fact(facts,'Congregações locais','Qtd Congregações','Quantidade de congregações'));
+      appendMetric(grid,'Uso',fact(facts,'Uso'));
+      appendMetric(grid,'Área do local',fact(facts,'Área do Local'));
+      appendMetric(grid,'Próxima reforma',fact(facts,'Ano da próxima reforma','Próxima reforma'));
+      appendMetric(grid,'Valor do prédio',fact(facts,'Valor do Prédio'));
+    }
+    if(grid.children.length)wrapper.appendChild(grid);
+    const alert=fact(facts,'Casos Aberto','Caso Aberto','Condição do Prédio','Descrição do Status do Local');
+    if(alert && !/^(?:nenhum|nenhuma|não|nao|sem caso)$/i.test(alert)) {
+      const row=elText('div','case-alert','');
+      row.append(elText('span','case-alert-icon','!'),elText('span','',alert));
+      wrapper.appendChild(row);
+    }
+    const actions=elText('div','property-actions','');
+    const meta=elText('span','coordinate-text',
+      feature.pos[0].toFixed(5)+', '+feature.pos[1].toFixed(5));
+    actions.appendChild(meta);
+    const links=[...new DOMParser().parseFromString(feature.description||'', 'text/html').querySelectorAll('a[href]')]
+      .filter(a=>isSharePointUrl(a.getAttribute('href')||''));
+    if(links.length) {
+      const link=document.createElement('a');
+      link.href=links[0].href;
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      link.textContent='Abrir no SharePoint ↗';
+      link.className='overview-sharepoint-link';
+      actions.appendChild(link);
+    }
+    wrapper.appendChild(actions);
+    return wrapper;
+  }
+  function enhanceLocalCharts(root) {
+    // Usa SOMENTE séries numéricas já presentes nas tabelas do KML.
+    // Não recupera dados da API externa de gráficos nem inventa valores.
+    for(const panel of root.querySelectorAll('.tabcontent,.tab-panel,.tab-pane')) {
+      const title=(panel.getAttribute('data-kml-id') || '') + ' ' +
+        (panel.previousElementSibling?.textContent || '');
+      const isGraph=/gr[aá]fic|proje|hist[oó]ric|chart/i.test(title) ||
+        /gr[aá]fic|proje|hist[oó]ric/i.test(panel.textContent.slice(0,160));
+      if(!isGraph) continue;
+      const years=[];
+      for(const tr of panel.querySelectorAll('tr')) {
+        const td=tr.querySelectorAll('td,th');
+        if(td.length<2)continue;
+        const year=td[0].textContent.trim(),val=td[1].textContent.trim();
+        if(!/^20\d{2}$/.test(year))continue;
+        const number=Number(val.replace(/\./g,'').replace(',','.').replace(/[^\d.-]/g,''));
+        if(Number.isFinite(number)&&number>=0)years.push({year,value:number});
+      }
+      if(years.length < 2 || years.length > 40) continue;
+      const max=Math.max(1,...years.map(p=>p.value));
+      const min=Math.max(0,Math.min(...years.map(p=>p.value))*.9);
+      const height=175,width=500;
+      const points=years.map((p,i)=>{
+        const x=35+i*(width-55)/Math.max(1,years.length-1);
+        const y=height-28-(p.value-min)/Math.max(1,max-min)*(height-48);
+        return [x,y];
+      });
+      const ns='http://www.w3.org/2000/svg';
+      const svg=document.createElementNS(ns,'svg');
+      svg.setAttribute('viewBox','0 0 500 175');
+      svg.setAttribute('role','img');
+      svg.setAttribute('aria-label','Gráfico local: '+years.length+' pontos anuais');
+      svg.classList.add('local-chart-svg');
+      const axis=document.createElementNS(ns,'path');
+      axis.setAttribute('d','M35 10V147H480');
+      axis.setAttribute('stroke','#b6cbd3');axis.setAttribute('stroke-width','1.2');axis.setAttribute('fill','none');
+      svg.appendChild(axis);
+      const line=document.createElementNS(ns,'polyline');
+      line.setAttribute('points',points.map(p=>p.join(',')).join(' '));
+      line.setAttribute('fill','none');line.setAttribute('stroke','#188ba8');
+      line.setAttribute('stroke-width','3');line.setAttribute('stroke-linecap','round');line.setAttribute('stroke-linejoin','round');
+      svg.appendChild(line);
+      years.forEach((p,i)=>{
+        const c=document.createElementNS(ns,'circle');
+        c.setAttribute('cx',points[i][0]);c.setAttribute('cy',points[i][1]);
+        c.setAttribute('r','4');c.setAttribute('fill','#168aa6');
+        const tip=document.createElementNS(ns,'title');
+        tip.textContent=p.year+': '+p.value.toLocaleString('pt-BR');
+        c.appendChild(tip);svg.appendChild(c);
+        if(i===0||i===years.length-1||i%Math.ceil(years.length/5)===0) {
+          const t=document.createElementNS(ns,'text');
+          t.setAttribute('x',points[i][0]);t.setAttribute('y','166');
+          t.setAttribute('fill','#638190');t.setAttribute('font-size','10');t.setAttribute('text-anchor','middle');
+          t.textContent=p.year;svg.appendChild(t);
+        }
+      });
+      const chart=elText('section','local-chart','');
+      chart.append(elText('strong','','Evolução histórica — dados do arquivo'),svg);
+      panel.insertBefore(chart,panel.firstChild);
+    }
+  }
   function showDetail(feature) {
     state.selected = feature;
     $('detailTitle').textContent = feature.name;
     $('detailSubtitle').textContent = feature.path.join(' / ') || 'Sem pasta';
     const body = $('detailBody');
     body.replaceChildren();
-    const meta = document.createElement('div');
-    meta.className = 'metadata';
-    meta.textContent = 'Latitude ' + feature.pos[0].toFixed(5) + ' · Longitude ' + feature.pos[1].toFixed(5);
-    body.appendChild(meta);
+    if(state.profile !== 'generic') {
+      const facts=getFacts(feature);
+      body.appendChild(renderOverview(feature,facts));
+    }else {
+      const meta = elText('div','metadata',
+        'Latitude '+feature.pos[0].toFixed(5)+' · Longitude '+feature.pos[1].toFixed(5));
+      body.appendChild(meta);
+    }
     body.appendChild(safeDescription(feature.description));
     const md = Object.entries(feature.metadata);
     if (md.length && !feature.description.trim()) {
@@ -497,6 +665,7 @@
       body.appendChild(table);
     }
     activateTabs(body);
+    if(state.profile !== 'generic')enhanceLocalCharts(body);
     $('detail').hidden = false;
   }
   function renderGroups() {
