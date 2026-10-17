@@ -5,7 +5,10 @@
   const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false };
   const ALLOWED_TAGS = new Set('a b blockquote br button caption code dd div dl dt em h1 h2 h3 h4 h5 h6 hr i li ol p pre small span strong sub sup table tbody td th thead tr u ul'.split(' '));
   const BLOCKED_TAGS = new Set('script style iframe svg object embed form input select textarea link meta video audio canvas picture source'.split(' '));
-  const MAX_KML_MB = 80;
+  // Teto preventivo, nao uma limitacao do KML ou do OpenFreeMap.
+  // KMLs de SRs podem passar de 80 MB; acima de centenas de MB o DOMParser pode consumir muita RAM.
+  const MAX_KML_MB = 512;
+  const LARGE_KML_MB = 80;
   let filterTimer = null;
   const map = L.map('map', { zoomControl: false, preferCanvas: true, minZoom: 2, maxZoom: 19, worldCopyJump: true }).setView([-14.5, -52], 4);
   // Cartografia local SEM solicitações de rede: geometria pública dos 27 estados.
@@ -345,16 +348,31 @@
   async function readKml(file) {
     if (!file) return;
     if (!/\.kml$/i.test(file.name)) { showToast('Selecione um arquivo .kml. KMZ ainda não é suportado.'); return; }
-    if (file.size > MAX_KML_MB * 1024 * 1024) { showToast('Este KML excede o limite de ' + MAX_KML_MB + ' MB do protótipo.'); return; }
-    $('fileName').textContent = 'Lendo ' + file.name + '...';
+    if (file.size > MAX_KML_MB * 1024 * 1024) {
+      showToast('Arquivo acima de ' + MAX_KML_MB + ' MB. Essa versao ainda nao tem leitura em streaming.');
+      return;
+    }
+    const tamanhoMB = (file.size / (1024 * 1024)).toFixed(1);
+    $('fileName').textContent = 'Lendo ' + file.name + ' (' + tamanhoMB + ' MB)...';
+    if (file.size > LARGE_KML_MB * 1024 * 1024) {
+      showToast('KML grande (' + tamanhoMB + ' MB). Aguarde: a leitura pode levar tempo e usar bastante memoria.');
+    }
+    // Deixa o aviso e o titulo aparecerem antes do processamento sincrono do XML.
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
     try {
-      const data = await file.arrayBuffer();
+      // Conserva o fallback de codificacao dos KMLs legados.
+      // Nao faz upload: File.arrayBuffer() le o arquivo do proprio computador.
+      let data = await file.arrayBuffer();
       let str;
       try { str = new TextDecoder('utf-8', { fatal: true }).decode(data); }
       catch (_) { str = new TextDecoder('windows-1252').decode(data); }
       const declared = (str.slice(0, 250).match(/encoding\s*=\s*["']([^"']+)/i) || [])[1] || '';
       if (/^(iso-8859-1|windows-1252)$/i.test(declared)) str = new TextDecoder('windows-1252').decode(data);
+      data = null; // Permite liberar o buffer binario antes de materializar a arvore XML.
+      $('fileName').textContent = 'Interpretando ' + file.name + '...';
+      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
       const result = parseKml(str, file.name);
+      str = null;
       install(result);
     } catch (err) {
       $('fileName').textContent = state.fileName || 'Nenhum arquivo aberto';
