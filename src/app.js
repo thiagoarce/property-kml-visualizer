@@ -413,12 +413,62 @@
       map.fitBounds(bounds.pad(.1), { maxZoom: 12, animate: false });
     }
   }
+  function renderLegend() {
+    const box = $('legendEntries');
+    if (!box) return;
+    box.replaceChildren();
+    const counts = new Map();
+    // Legenda gerada pelos estilos do KML inteiro.
+    for (const f of state.features) {
+      const key = iconKey(f);
+      if (!counts.has(key)) counts.set(key, { key, feature: f, count: 0 });
+      counts.get(key).count++;
+    }
+    const items = [...counts.values()].sort((a, b) => b.count - a.count);
+    $('legendCount').textContent = items.length ? items.length + ' tipos' : 'sem itens';
+    if (!items.length) {
+      const empty = document.createElement('p');
+      empty.className = 'legend-note';
+      empty.textContent = 'Importe um KML ou KMZ para ver seus símbolos.';
+      box.appendChild(empty);
+      return;
+    }
+    for (const item of items) {
+      const f = item.feature;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'legend-entry' + (state.iconFilter === item.key ? ' is-selected' : '');
+      btn.title = f.styleName ? 'Estilo KML: ' + f.styleName : 'Símbolo encontrado no arquivo';
+      const icon = document.createElement('span');
+      icon.className = 'legend-icon';
+      icon.appendChild(markerSymbol(f.iconKind || 'circle', f.color, f.iconUrl));
+      const name = document.createElement('span');
+      name.className = 'legend-name';
+      const kindNames = { circle: 'círculo', square: 'quadrado', diamond: 'losango',
+        triangle: 'triângulo', star: 'estrela', pushpin: 'marcador' };
+      const styleLabel = f.styleName && !/^(?:normal|highlight|default|s\d+|style\d*|icon[-_]?\d+|msn_.*)$/i.test(f.styleName)
+        ? f.styleName.replace(/[_-]+/g, ' ').slice(0, 55)
+        : '';
+      name.textContent = styleLabel || (colorName(f.color) + ' · ' + (kindNames[f.iconKind] || 'círculo'));
+      const count = document.createElement('span');
+      count.className = 'legend-item-count';
+      count.textContent = item.count.toLocaleString('pt-BR');
+      btn.append(icon, name, count);
+      btn.addEventListener('click', () => {
+        state.iconFilter = state.iconFilter === item.key ? '' : item.key;
+        updateFilters(false);
+      });
+      box.appendChild(btn);
+    }
+    $('legendClear').hidden = !state.iconFilter;
+  }
   function updateFilters(fit = false) {
     state.group = $('groups').value;
     state.search = $('search').value.trim().toLocaleLowerCase('pt-BR');
     state.filtered = state.features.filter(f => {
       const group = f.path.join(' / ');
       if (state.group && group !== state.group) return false;
+      if (state.iconFilter && iconKey(f) !== state.iconFilter) return false;
       if (!state.search) return true;
       const hay = (f.name + ' ' + group + ' ' + Object.values(f.metadata).join(' ')).toLocaleLowerCase('pt-BR');
       return hay.includes(state.search);
@@ -427,9 +477,13 @@
     $('foundCount').textContent = state.filtered.length.toLocaleString('pt-BR');
     renderList();
     renderMap(fit);
+    renderLegend();
   }
   function install(parsed) {
     resetDetail();
+    state.iconFilter = '';
+    for (const url of state.iconUrls) URL.revokeObjectURL(url);
+    state.iconUrls = parsed.iconUrls || [];
     state.features = parsed.features;
     state.shapes = parsed.shapes;
     state.fileName = parsed.fileName;
@@ -551,6 +605,13 @@
     const dropTitle = document.querySelector('#dropzone strong');
     if (dropTitle) dropTitle.textContent = 'Arraste seu KML ou KMZ aqui';
   }
+  $('legendToggle').addEventListener('click', () => {
+    const expanded = $('legendToggle').getAttribute('aria-expanded') === 'true';
+    $('legendToggle').setAttribute('aria-expanded', String(!expanded));
+    $('legendEntries').hidden = expanded;
+    $('legendFooter').hidden = expanded;
+  });
+  $('legendClear').addEventListener('click', () => { state.iconFilter = ''; updateFilters(false); });
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
   $('demoButton').addEventListener('click', loadDemo);
