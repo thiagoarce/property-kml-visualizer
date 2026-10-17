@@ -81,6 +81,8 @@ jobs:
         run: node tests/dashboard-browser.mjs
       - name: Validar filtros territoriais e pesquisa sem rede
         run: node tests/territorial-filters-browser.mjs
+      - name: Validar popup limpo e estilos cartográficos
+        run: node tests/popup-tiles-browser.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: Visualizador-KML-OpenFreeMap-file-test
