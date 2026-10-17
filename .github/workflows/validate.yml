@@ -18,3 +18,9 @@ jobs:
         run: git diff --exit-code -- dist/Visualizador_KML.html
       - name: Validate privacy and synthetic sample
         run: python3 scripts/check.py
+      - name: Install browser for developer-side smoke test
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test standalone HTML in Chromium
+        run: node tests/browser-smoke.mjs
