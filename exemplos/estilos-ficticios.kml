@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Ícones e legenda — demonstração fictícia</name>
+<Style id="quadrado_verde"><IconStyle><color>ff00cc00</color><scale>1.0</scale><Icon><href>icons/green-square.png</href></Icon></IconStyle></Style>
+<Style id="estrela_azul"><IconStyle><color>ffff0000</color><Icon><href>https://example.invalid/blue-star.png</href></Icon></IconStyle></Style>
+<StyleMap id="normal_azul"><Pair><key>normal</key><styleUrl>#estrela_azul</styleUrl></Pair></StyleMap>
+<Folder><name>Locais fictícios</name>
+<Placemark><name>BRA9901 — Exemplo A</name><styleUrl>#quadrado_verde</styleUrl><Point><coordinates>-34.88,-8.05,0</coordinates></Point></Placemark>
+<Placemark><name>BRA9902 — Exemplo B</name><styleUrl>#quadrado_verde</styleUrl><Point><coordinates>-34.87,-7.12,0</coordinates></Point></Placemark>
+<Placemark><name>BRA9903 — Exemplo C</name><styleUrl>#normal_azul</styleUrl><Point><coordinates>-47.88,-15.79,0</coordinates></Point></Placemark>
+</Folder></Document></kml>
