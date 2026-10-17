@@ -30,6 +30,30 @@
       </div>
     </div>
     <div class="filter"><label for="search">Encontrar local</label><input id="search" type="search" autocomplete="off" placeholder="Buscar BRA, nome, cidade..."><select id="groups" aria-label="Filtrar por pasta"><option value="">Todas as pastas</option></select></div>
+    <section class="territory-panel" id="territoryPanel">
+      <details id="advancedFilters">
+        <summary>◈ Análise territorial <span class="analysis-hint">Filtrar, combinar e agrupar</span></summary>
+        <div class="analysis-body">
+          <label for="question">Pesquisar por pergunta</label>
+          <textarea id="question" rows="2" placeholder="Ex.: salões com mais de 5 congregações em SP"></textarea>
+          <div class="analysis-actions"><button type="button" id="askButton">Pesquisar no mapa</button><button type="button" id="clearAdvanced">Limpar filtros</button></div>
+          <div class="analysis-hint" id="questionHint">Busca local por critérios reconhecidos. Não usa IA nem envia o KML.</div>
+          <div class="facet-grid">
+            <label>Estado (UF)<select id="stateFilter" aria-label="Filtrar por estado"><option value="">Todas as UFs</option></select></label>
+            <label>Macro<select id="macroFilter" aria-label="Filtrar por Macro"><option value="">Todas as Macros</option></select></label>
+            <label>REC<select id="recFilter" aria-label="Filtrar por REC"><option value="">Todos os RECs</option></select></label>
+            <label>Tipo de imóvel<select id="propertyFilter" aria-label="Filtrar por tipo de imóvel"><option value="">Todos os tipos</option></select></label>
+            <label>Congregações<select id="congFilter" aria-label="Filtrar por congregações"><option value="">Todas as quantidades</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5 ou mais</option><option value="6+">Mais de 5 (6+)</option><option value="unique">Única na cidade</option><option value="unknown">Não identificadas</option></select></label>
+            <label>Situação<select id="caseFilter" aria-label="Filtrar por situação"><option value="">Todas as situações</option></select></label>
+          </div>
+          <label for="groupBy">Agrupar resultados por</label>
+          <select id="groupBy"><option value="">Sem agrupamento</option><option value="uf">Estado</option><option value="macro">Macro</option><option value="rec">REC</option><option value="type">Tipo de imóvel</option><option value="cong">Congregações (categoria)</option><option value="status">Situação</option></select>
+          <button type="button" id="exportFiltered">Exportar resultados (.csv)</button>
+        </div>
+      </details>
+      <div id="analysisResult" class="analysis-result" role="status" aria-live="polite" hidden></div>
+      <div id="groupStats" class="analysis-groups" hidden></div>
+    </section>
     <div class="result-header"><span>Locais encontrados</span><span id="foundCount">0</span></div>
     <div class="results" id="results"></div>
     <div class="sidebar-foot">Protótipo local • KML não é executado como JavaScript • <span id="shapeCount"></span> • Fotos externas só abrem após clique</div>
