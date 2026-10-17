@@ -24,5 +24,8 @@ assert "tileerror" in app
 assert "BLOCKED_TAGS" in app and "validLink" in app
 assert "default-src 'none'" in viewer
 assert "connect-src 'none'" in viewer
-assert 'Dados do KML processados no navegador' in viewer
+assert 'id="welcomeScreen"' in viewer and 'id="loadingScreen"' in viewer
+assert 'id="workspaceLocais"' in viewer and 'id="workspaceLegend"' in viewer
+assert 'Dados do KML processados no navegador' not in viewer
+assert 'Reabrir exemplo' not in viewer
 print("OK: arquivo único, segurança básica, exemplo sintético e ausência de envio de KML")
