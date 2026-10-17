@@ -10,29 +10,60 @@
 <link rel="stylesheet" href="../vendor/MarkerCluster.css">
 <link rel="stylesheet" href="./app.css">
 </head>
-<body>
+<body class="is-welcome">
+<section class="welcome-screen" id="welcomeScreen" aria-label="Abrir mapa" role="dialog" aria-modal="true">
+  <div class="welcome-card">
+    <div class="welcome-brand"><span class="welcome-mark">◎</span> Mapa de Planejamento</div>
+    <h2>Seu mapa, pronto para explorar.</h2>
+    <p>Abra um arquivo KML ou KMZ para visualizar os locais, consultar informações e aplicar filtros.</p>
+    <button type="button" class="welcome-drop" id="welcomeDrop">
+      <span class="welcome-drop-symbol" aria-hidden="true">↥</span>
+      <strong>Escolher arquivo KML ou KMZ</strong>
+      <small>ou arraste o arquivo para esta área</small>
+    </button>
+    <div id="welcomeError" class="welcome-error" role="alert" hidden></div>
+    <span class="welcome-note">O arquivo é aberto diretamente neste computador.</span>
+  </div>
+</section>
+<section id="loadingScreen" class="loading-screen" aria-live="polite" aria-busy="true" hidden>
+  <div class="loading-card">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <div class="loading-eyebrow">PREPARANDO MAPA</div>
+    <h2 id="loadingName">Abrindo arquivo</h2>
+    <p id="loadingStage">Lendo dados…</p>
+    <div class="loading-track"><div class="loading-track-bar"></div></div>
+    <small>Arquivos grandes podem levar alguns instantes.</small>
+  </div>
+</section>
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true">◎</span><div><h1>Mapa de Planejamento</h1><small>Visualizador KML • Leaflet</small></div></div>
-  <div class="topactions"><button class="btn btn-quiet" id="sidebarToggle" type="button" aria-expanded="true" aria-controls="sidebar">Ocultar filtros</button><span class="privacy">Dados do KML processados no navegador</span><button class="btn" id="demoButton" type="button">Reabrir exemplo</button><button class="btn btn-main" id="openButton" type="button">Abrir KML</button></div>
+  <div class="brand"><span class="logo" aria-hidden="true">◎</span><div><h1>Mapa de Planejamento</h1><small id="currentMapName">Nenhum mapa aberto</small></div></div>
+  <div class="topactions"><button class="btn btn-quiet" id="sidebarToggle" type="button" aria-expanded="true" aria-controls="sidebar">Ocultar painel</button><button class="btn btn-main" id="openButton" type="button">Trocar arquivo</button></div>
 </header>
 <div class="layout">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
-      <div class="eyebrow">Visualizador</div>
-      <h2 class="file-name" id="fileName">Exemplo fictício</h2>
-      <p class="hint">Selecione um arquivo KML local. Os dados não são enviados para o provedor de mapas.</p>
-      <div class="drop" id="dropzone" tabindex="0" role="button" aria-label="Arrastar ou selecionar KML"><span class="drop-icon">↥</span><strong>Arraste seu KML aqui</strong><small>ou clique para selecionar um arquivo .kml</small></div>
-      <input id="upload" type="file" accept=".kml,application/vnd.google-earth.kml+xml" hidden>
+      <div class="eyebrow">MAPA ABERTO</div>
+      <h2 class="file-name" id="fileName">—</h2>
+      <input id="upload" type="file" accept=".kml,.kmz,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" hidden>
       <div class="stats">
         <div class="stat"><strong id="totalCount">0</strong><small>marcadores</small></div>
         <div class="stat"><strong id="filteredCount">0</strong><small>no filtro</small></div>
         <div class="stat"><strong id="groupCount">0</strong><small>grupos</small></div>
       </div>
     </div>
-    <div class="filter"><label for="search">Encontrar local</label><input id="search" type="search" autocomplete="off" placeholder="Buscar BRA, nome, cidade..."><select id="groups" aria-label="Filtrar por pasta"><option value="">Todas as pastas</option></select></div>
-    <section class="territory-panel" id="territoryPanel">
-      <details id="advancedFilters">
-        <summary>◈ Análise territorial <span class="analysis-hint">Filtrar, combinar e agrupar</span></summary>
+    <nav class="workspace-tabs" aria-label="Ferramentas do mapa">
+      <button type="button" class="workspace-tab is-active" data-workspace="locais" aria-selected="true">Locais</button>
+      <button type="button" class="workspace-tab" data-workspace="filtros" aria-selected="false">Filtros</button>
+      <button type="button" class="workspace-tab" data-workspace="legenda" aria-selected="false">Legenda</button>
+    </nav>
+    <section id="workspaceLocais" class="workspace-pane">
+      <div class="filter"><label for="search">Encontrar local</label><input id="search" type="search" autocomplete="off" placeholder="Buscar BRA, nome, cidade..."><select id="groups" aria-label="Filtrar por pasta"><option value="">Todas as pastas</option></select></div>
+      <div class="result-header"><span>Locais encontrados</span><span id="foundCount">0</span></div>
+      <div class="results" id="results"></div>
+    </section>
+    <section class="territory-panel workspace-pane" id="territoryPanel" hidden>
+      <details id="advancedFilters" open>
+        <summary>Filtros combinados <span class="analysis-hint">Território e patrimônio</span></summary>
         <div class="analysis-body">
           <label for="question">Pesquisar por pergunta</label>
           <textarea id="question" rows="2" placeholder="Ex.: salões com mais de 5 congregações em SP"></textarea>
@@ -54,9 +85,16 @@
       <div id="analysisResult" class="analysis-result" role="status" aria-live="polite" hidden></div>
       <div id="groupStats" class="analysis-groups" hidden></div>
     </section>
-    <div class="result-header"><span>Locais encontrados</span><span id="foundCount">0</span></div>
-    <div class="results" id="results"></div>
-    <div class="sidebar-foot">Protótipo local • KML não é executado como JavaScript • <span id="shapeCount"></span> • Fotos externas só abrem após clique</div>
+    <section id="workspaceLegend" class="workspace-pane" hidden>
+      <section class="map-legend" id="mapLegend" aria-label="Significado dos símbolos do arquivo">
+        <div class="legend-header">
+          <button id="legendToggle" type="button" aria-expanded="true" aria-controls="legendEntries">Legenda <span id="legendCount"></span></button>
+          <button id="legendClear" type="button" hidden>Limpar filtro</button>
+        </div>
+        <div id="legendEntries" class="legend-entries"></div>
+        <p id="legendFooter" class="legend-note">Simbologia do arquivo. Para filtrar, use a aba Filtros.</p>
+      </section>
+    </section>
   </aside>
   <main class="map-shell">
     <div class="map" id="map" role="application" aria-label="Mapa interativo"></div>
@@ -83,14 +121,6 @@
         </div>
       </details>
     </div>
-    <section class="map-legend" id="mapLegend" aria-label="Legenda de símbolos do arquivo">
-      <div class="legend-header">
-        <button id="legendToggle" type="button" aria-expanded="true" aria-controls="legendEntries">▦ Legenda <span id="legendCount"></span></button>
-        <button id="legendClear" type="button" hidden>Limpar filtro</button>
-      </div>
-      <div id="legendEntries" class="legend-entries"></div>
-      <p id="legendFooter" class="legend-note">Símbolos do KML/KMZ. Clique para filtrar. Os nomes não representam uma classificação inferida.</p>
-    </section>
     <aside class="details" id="detail" hidden>
       <div class="detail-head"><div><h2 id="detailTitle">Local</h2><p id="detailSubtitle"></p></div><button class="close" id="closeDetail" type="button" aria-label="Fechar detalhes">×</button></div>
       <div class="detail-body" id="detailBody"></div>
