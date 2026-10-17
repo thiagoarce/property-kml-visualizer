@@ -28,6 +28,10 @@ DEPENDENCIES = {
         "https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js",
         "https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js",
     ),
+    "jszip": (
+        "https://unpkg.com/jszip@3.10.1/dist/jszip.min.js",
+        "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+    ),
 }
 
 def get_asset(kind: str) -> str:
@@ -64,6 +68,7 @@ def main():
     css = get_asset("css")
     maplibre = get_asset("maplibre")
     adapter = get_asset("adapter")
+    jszip = get_asset("jszip")
 
     # Nenhum CDN é requisitado ao abrir o arquivo gerado.
     page = must_replace(
@@ -75,6 +80,7 @@ def main():
     injection = (
         "<script>\n/* MapLibre GL JS 5.12.0 */\n" + safe_script(maplibre) + "\n</script>\n"
         "<script>\n/* @maplibre/maplibre-gl-leaflet 0.1.4 */\n" + safe_script(adapter) + "\n</script>\n"
+        "<script>\n/* JSZip 3.10.1 for KMZ input (MIT) */\n" + safe_script(jszip) + "\n</script>\n"
     )
     page = must_replace(page, anchor, injection + anchor)
 
@@ -128,6 +134,7 @@ def main():
     if "https://tile.openstreetmap.org/" in page:
         raise RuntimeError("A URL de tiles raster do OSM ainda aparece no arquivo final.")
     assert "L.maplibreGL" in page
+    assert "JSZip" in page and "extractKmzKml" in page
     assert "tiles.openfreemap.org/styles/liberty" in page
     OUTPUT.write_text(page, encoding="utf-8")
     print(f"\nGERADO: {OUTPUT} ({OUTPUT.stat().st_size:,} bytes)")
