@@ -1441,19 +1441,98 @@
   $('fitButton').addEventListener('click', () => {
     if (state.filtered.length) map.fitBounds(L.latLngBounds(state.filtered.map(f => f.pos)).pad(.1), { maxZoom: 12 });
   });
-  $('osmToggle').addEventListener('change', e => {
-    state.osm = e.target.checked;
-    if (state.osm) {
-      raster.addTo(map);
-      $('statusTitle').textContent = 'Ruas online · experimental';
-      showToast('O OpenStreetMap pode bloquear arquivos abertos por duplo clique. Nenhum dado do KML é enviado.');
-    } else {
-      if (map.hasLayer(raster)) map.removeLayer(raster);
-      $('statusTitle').textContent = 'Brasil · mapa vetorial local';
-      showToast('Mapa vetorial local ativado. Sem requisições cartográficas externas.');
+  const ONLINE_STYLES={
+    liberty:'https://tiles.openfreemap.org/styles/liberty',
+    positron:'https://tiles.openfreemap.org/styles/positron',
+    bright:'https://tiles.openfreemap.org/styles/bright',
+    dark:'https://tiles.openfreemap.org/styles/dark'
+  };
+  const styleLayers=new Map();
+  let currentBaseLayer=null;
+  let esriNoticeAccepted=false;
+  function getMapLayer(mode) {
+    if(mode==='liberty')return raster;
+    if(styleLayers.has(mode))return styleLayers.get(mode);
+    let layer;
+    if(mode==='satellite'){
+      layer=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+        maxZoom:19,attribution:'Imagem © Esri e seus fornecedores · World Imagery',
+        updateWhenIdle:true,keepBuffer:2
+      });
+      layer.on('tileerror',()=>{if(currentBaseLayer===layer)showToast('O serviço de imagens da Esri pode exigir autorização ou bloquear este acesso.');});
+    }else if(typeof L.maplibreGL==='function'&&ONLINE_STYLES[mode]){
+      layer=L.maplibreGL({style:ONLINE_STYLES[mode]});
+      layer.on('add',()=>{
+        const gl=layer.getMaplibreMap?.();
+        if(gl&&!gl._viewerListener){
+          gl._viewerListener=true;
+          gl.on('error',e=>{
+            if(currentBaseLayer===layer){
+              console.warn('Falha no estilo de mapa online:',e.error||e);
+              showToast('Falha ao carregar o estilo '+mode+'. Verifique o acesso ao provedor.');
+            }
+          });
+        }
+      });
+    }else{
+      showToast('Outros estilos exigem a versão OpenFreeMap. Usando o mapa de ruas.');
+      $('mapStyle').value='liberty';
+      return raster;
+    }
+    styleLayers.set(mode,layer);
+    return layer;
+  }
+  function applyBaseMap() {
+    if(currentBaseLayer&&map.hasLayer(currentBaseLayer))map.removeLayer(currentBaseLayer);
+    currentBaseLayer=null;
+    state.osm=$('osmToggle').checked;
+    if(state.osm){
+      const mode=$('mapStyle').value;
+      currentBaseLayer=getMapLayer(mode);
+      currentBaseLayer.addTo(map);
+      $('statusTitle').textContent=mode==='satellite'?'Satélite · Esri World Imagery': 'OpenFreeMap · '+mode;
+    }else{
+      $('statusTitle').textContent='Brasil · mapa vetorial local';
     }
     updateStateLabels();
+  }
+  $('osmToggle').addEventListener('change',()=>{
+    if($('osmToggle').checked&&$('mapStyle').value==='satellite'&&!esriNoticeAccepted){
+      if(!window.confirm('O modo satélite acessa imagens da Esri. O provedor recebe a área visualizada e o nível de zoom. O uso institucional depende das condições de licença. Deseja testar?')){
+        $('osmToggle').checked=false;return;
+      }
+      esriNoticeAccepted=true;
+    }
+    applyBaseMap();
   });
+  $('mapStyle').addEventListener('change',()=>{
+    if($('mapStyle').value==='satellite'&&!esriNoticeAccepted){
+      if(!window.confirm('O modo satélite usa o serviço Esri World Imagery, sujeito a licença e autorização institucional. Apenas pedidos de imagens cartográficas são enviados; o KML permanece no navegador. Deseja testar?')){
+        $('mapStyle').value='liberty';return;
+      }
+      esriNoticeAccepted=true;
+    }
+    if(!$('osmToggle').checked) $('osmToggle').checked=true;
+    applyBaseMap();
+  });
+  function toggleSidebar(show) {
+    document.body.classList.toggle('sidebar-collapsed',!show);
+    $('showSidebar').checked=show;
+    $('sidebarToggle').textContent=show?'Ocultar filtros':'Mostrar filtros';
+    $('sidebarToggle').setAttribute('aria-expanded',String(show));
+    requestAnimationFrame(()=>map.invalidateSize());
+  }
+  $('sidebarToggle').addEventListener('click',()=>toggleSidebar(document.body.classList.contains('sidebar-collapsed')));
+  $('showSidebar').addEventListener('change',()=>toggleSidebar($('showSidebar').checked));
+  $('showLegend').addEventListener('change',()=>{
+    $('mapLegend').hidden=!$('showLegend').checked;
+  });
+  $('showMapStatus').addEventListener('change',()=>{
+    document.querySelector('.map-status').hidden=!$('showMapStatus').checked;
+  });
+  for(const id of ['showMetrics','showEmptyFields']){
+    $(id).addEventListener('change',updateDetailPreferences);
+  }
   $('search').addEventListener('input', () => {
     clearTimeout(filterTimer); filterTimer = setTimeout(() => updateFilters(false), 180);
   });
