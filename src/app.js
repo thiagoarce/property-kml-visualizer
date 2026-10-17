@@ -77,10 +77,17 @@
   function directText(n, local) { return text(child(n, local)); }
   function safeNumber(n) { return Number.isFinite(n) ? n : null; }
   function parseCoordinates(value) {
-    return (value || '').trim().split(/\s+/).map(pair => {
-      const p = pair.split(',').map(Number);
-      return p.length >= 2 && safeNumber(p[0]) !== null && safeNumber(p[1]) !== null &&
-        p[1] >= -90 && p[1] <= 90 && p[0] >= -180 && p[0] <= 180 ? [p[1], p[0]] : null;
+    // KML admite espaços após vírgulas: "-60.0217, -3.1190".
+    // Antes, split por whitespace criava "-60.0217," + "-3.1190";
+    // Number('') virava 0 e colocava milhares de pontos sobre o Equador.
+    // Também suporta LineString com vários pares e altitude opcional.
+    return (value || '').trim().replace(/\s*,\s*/g, ',').split(/\s+/).map(pair => {
+      const parts = pair.split(',');
+      if (parts.length < 2 || parts.length > 3 || !parts[0] || !parts[1]) return null;
+      const lon = Number(parts[0]);
+      const lat = Number(parts[1]);
+      return Number.isFinite(lon) && Number.isFinite(lat) &&
+        lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 ? [lat, lon] : null;
     }).filter(Boolean);
   }
   function xmlColor(kmlColor) {
