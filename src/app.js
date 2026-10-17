@@ -1728,7 +1728,8 @@
   }
   function install(parsed, opts={}) {
     resetDetail();
-    state.iconFilter = '';state.typeFilter='';
+    state.iconFilter = opts.view?.iconFilter || '';
+    state.typeFilter = opts.view?.typeFilter || '';
     for (const url of state.iconUrls) URL.revokeObjectURL(url);
     state.iconUrls = parsed.iconUrls || [];
     state.features = parsed.features;
@@ -1739,17 +1740,44 @@
       if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
       for(const f of state.features)enrichFeature(f);
     }
-    for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'])$(name).value='';
-    $('question').value='';
+    if(!opts.view)for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'])$(name).value='';
+    $('question').value=opts.view?.question||'';
     $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
     buildAnalysisOptions();
     showProfile();
     $('fileName').textContent = parsed.fileName;
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
     $('currentMapName').textContent = parsed.fileName;
-    $('search').value = ''; state.search = ''; state.group = '';
-    renderGroups(); updateFilters(!opts.skipFit);
-    setWorkspace('locais');
+    $('search').value=opts.view?.search||'';
+    state.search='';state.group='';
+    renderGroups();
+    if(opts.view) {
+      const v=opts.view;
+      $('groups').value=v.group||'';
+      for(const key of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy']){
+        $(key).value=v.filters?.[key]||'';
+      }
+      for(const key of ['showLegend','showMapStatus','showMetrics','showEmptyFields']){
+        if(typeof v.display?.[key]==='boolean')$(key).checked=v.display[key];
+      }
+      $('mapLegend').hidden=!$('showLegend').checked;
+      document.querySelector('.map-status').hidden=!$('showMapStatus').checked;
+      if(['liberty','positron','bright','dark','satellite'].includes(v.mapStyle))$('mapStyle').value=v.mapStyle;
+      // Segurança: mesmo que o usuário tivesse tiles online, a reabertura não os ativa.
+      $('osmToggle').checked=false;
+      if(typeof v.display?.showSidebar==='boolean'){
+        document.body.classList.toggle('sidebar-collapsed',!v.display.showSidebar);
+        $('showSidebar').checked=v.display.showSidebar;
+        $('sidebarToggle').textContent=v.display.showSidebar?'Ocultar painel':'Mostrar painel';
+        $('sidebarToggle').setAttribute('aria-expanded',String(v.display.showSidebar));
+      }
+    }
+    updateFilters(!opts.skipFit);
+    setWorkspace(opts.view?.workspace||'locais');
+    if(opts.view?.center&&Array.isArray(opts.view.center)&&opts.view.center.length===2&&
+      opts.view.center.every(Number.isFinite)&&Number.isFinite(opts.view.zoom)){
+      map.setView(opts.view.center,Math.max(2,Math.min(19,opts.view.zoom)),{animate:false});
+    }
     if (!state.features.length) showToast('KML válido, mas sem marcadores Point. Alguns elementos podem ser não pontuais.');
   }
   function decodeKmlBytes(bytes) {
