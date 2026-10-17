@@ -173,3 +173,33 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
  .map-legend{max-height:28vh}
  .semantic-legend{padding:7px 9px}
 }
+
+/* Análise territorial: filtros combináveis e busca interpretada inteiramente no navegador. */
+.territory-panel{border-top:1px solid #dfe9ed;background:#fbfdfd}
+.territory-panel details{margin:0;border:0}
+.territory-panel summary{padding:12px 14px;color:#1b627d;font-weight:800;font-size:12px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:6px;background:#f0f7f9}
+.territory-panel summary::-webkit-details-marker{display:none}
+.territory-panel summary:before{content:'▸';color:#428da3;font-size:12px}
+.territory-panel details[open] summary:before{content:'▾'}
+.analysis-hint{font-size:10px;color:#78939e;font-weight:400;line-height:1.35}
+.territory-panel summary .analysis-hint{margin-left:auto;text-align:right}
+.analysis-body{padding:13px;max-height:min(48vh,450px);overflow:auto;border-top:1px solid #dae7ec}
+.analysis-body label{display:block;font-size:10px;font-weight:700;color:#63808f;letter-spacing:.15px;margin:0 0 5px}
+.analysis-body textarea{resize:vertical;min-height:51px;max-height:90px;width:100%;border:1px solid #cfdee5;border-radius:8px;padding:9px;font-family:inherit;font-size:11px;line-height:1.4;color:#244556;background:#fff}
+.analysis-actions{display:flex;gap:7px;margin:7px 0 9px}
+.analysis-actions button,#exportFiltered{font-family:inherit;font-size:10.5px;font-weight:700;background:#eef5f7;border:1px solid #c9dfe6;color:#216a83;border-radius:7px;padding:9px 7px;cursor:pointer;flex:1}
+.analysis-actions #askButton{background:#177d9e;color:white;border-color:#177d9e}
+.analysis-actions button:hover,#exportFiltered:hover{filter:brightness(.96)}
+#questionHint{margin-bottom:12px}
+.facet-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 8px;margin:9px 0 14px}
+.facet-grid label{margin:0;min-width:0}
+.facet-grid select,.analysis-body #groupBy{display:block;width:100%;margin-top:5px;background:#fff;border:1px solid #d1e0e5;border-radius:7px;min-height:33px;color:#284d60;font-size:11px;padding:6px 4px;overflow:hidden;text-overflow:ellipsis}
+.facet-grid select:disabled{background:#f3f5f6;color:#adbcc3}
+#exportFiltered{width:100%;margin-top:11px;background:#e8f5f0;border-color:#cce8d9;color:#1a6954}
+.analysis-result{font-size:10.5px;line-height:1.5;color:#235b6b;border-top:1px solid #d9e8ec;padding:10px 13px;background:#eaf6f8}
+.analysis-result[hidden],.analysis-groups[hidden]{display:none}
+.analysis-groups{padding:9px 13px;background:#fff;border-top:1px solid #e1e9eb;max-height:150px;overflow:auto}
+.group-title{font-size:10px;color:#637f8b;display:block;margin-bottom:6px}
+.group-stat{display:flex;gap:6px;justify-content:space-between;align-items:center;padding:5px 1px;border-bottom:1px solid #edf2f3;color:#4b6974;font-size:10.5px}
+.group-stat b{font-variant-numeric:tabular-nums;color:#1d526c}
+@media(max-width:840px){.facet-grid{grid-template-columns:1fr}.territory-panel summary .analysis-hint{display:none}}
