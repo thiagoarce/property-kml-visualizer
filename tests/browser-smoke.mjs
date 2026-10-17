@@ -31,7 +31,9 @@ try {
   assert.ok(vectorCanvases > 0, 'A cartografia offline deve ter um Canvas visível');
   assert.equal(external.length, 0, 'Abrir o HTML não pode fazer requisições externas');
   // O usuário ainda pode experimentar ruas OSM, mas o bloqueio deve devolver o mapa local.
-  await page.locator('#osmToggle').check();
+  // O tile bloqueado volta tão rápido ao modo offline que Playwright.check()
+  // falharia por esperar que o checkbox permanecesse marcado.
+  await page.locator('#osmToggle').click();
   await page.locator('#osmToggle:not(:checked)').waitFor();
   assert.ok(await page.locator('.leaflet-vectorMap-pane canvas').count() > 0, 'Fallback continua visível após falha dos tiles');
 
