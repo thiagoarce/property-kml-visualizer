@@ -18,6 +18,7 @@ try {
   await page.locator('#totalCount').filter({ hasText: '8' }).waitFor();
   await page.locator('#upload').setInputFiles(kmz);
   await page.locator('#totalCount').filter({ hasText: '3' }).waitFor({ timeout: 20000 });
+  await page.locator('[data-workspace="legenda"]').click();
   assert.equal(await page.locator('#legendEntries .legend-entry').count(), 2, 'Dois estilos distintos devem constar na legenda');
   assert.equal(await page.locator('#legendCount').innerText(), '2 tipos');
   const localIcons = page.locator('#legendEntries img.kml-icon-img');
