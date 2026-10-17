@@ -30,9 +30,10 @@ try {
  assert.equal(await page.locator('body').getAttribute('data-map-profile'),'srs');
  assert.ok(await page.getByText('LEGENDA · SALÕES DO REINO').count());
  await page.locator('.result').first().click();
- assert.equal(await page.locator('#detailBody .tabs button').count(),2);
+ assert.equal(await page.locator('#detailBody .property-nav-tab').count(),4,'Resumo moderno, Local, Fotos e Fonte original');
+ assert.equal(await page.locator('.property-view:not([hidden])').count(),1,'Somente o resumo deve aparecer inicialmente');
  assert.ok(await page.locator('.chart-external-warning').count(), 'Link Render não pode ser oferecido como gráfico');
- await page.locator('#detailBody .tabs button').nth(1).click();
+ await page.locator('#detailBody .property-nav-tab').filter({hasText:'Fotos'}).click();
  assert.equal(await page.locator('.photo-load-button').count(),1);
  assert.equal(await page.locator('.sharepoint-photo').count(),0, 'Fotos não são carregadas sem clique');
  assert.equal(requests.length,0,'Nenhum KML ou URL de gráfico/foto pode acessar a rede automaticamente');
