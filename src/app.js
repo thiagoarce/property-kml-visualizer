@@ -1726,7 +1726,7 @@
     renderLegend();
     updateAnalysisView();
   }
-  function install(parsed) {
+  function install(parsed, opts={}) {
     resetDetail();
     state.iconFilter = '';state.typeFilter='';
     for (const url of state.iconUrls) URL.revokeObjectURL(url);
@@ -1735,8 +1735,10 @@
     state.shapes = parsed.shapes;
     state.fileName = parsed.fileName;
     state.profile = mapProfile(parsed.fileName, parsed.features);
-    if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
-    for(const f of state.features)enrichFeature(f);
+    if(!opts.preprocessed){
+      if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
+      for(const f of state.features)enrichFeature(f);
+    }
     for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'])$(name).value='';
     $('question').value='';
     $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
@@ -1746,7 +1748,7 @@
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
     $('currentMapName').textContent = parsed.fileName;
     $('search').value = ''; state.search = ''; state.group = '';
-    renderGroups(); updateFilters(true);
+    renderGroups(); updateFilters(!opts.skipFit);
     setWorkspace('locais');
     if (!state.features.length) showToast('KML válido, mas sem marcadores Point. Alguns elementos podem ser não pontuais.');
   }
@@ -1795,6 +1797,7 @@
     // Só extrai imagens explicitamente usadas em IconStyle, não fotos anexadas.
     const images = new Map();
     const urls = [];
+    const iconAssets = [];
     const lookup = new Map(Object.keys(zip.files).map(name => [name.toLowerCase(), name]));
     const folder = kmlName.replace(/\\/g, '/').split('/').slice(0, -1);
     const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
@@ -1833,9 +1836,11 @@
       try {
         const bytes = await entry.async('uint8array');
         if (bytes.length > limitBytes || bytes.length + totalBytes > totalLimit) continue;
-        const url = URL.createObjectURL(new Blob([bytes], { type: MIME[ext] }));
+        const blob = new Blob([bytes], { type: MIME[ext] });
+        const url = URL.createObjectURL(blob);
         totalBytes += bytes.length;
         images.set(actual, url);
+        iconAssets.push({ url, blob });
         urls.push(url);
         f.iconUrl = url;
       } catch (e) {
@@ -1843,6 +1848,7 @@
       }
     }
     parsed.iconUrls = urls;
+    parsed.iconAssets = iconAssets;
     // Nenhum URL externo do KML é carregado por este processo.
   }
   // Persistência local no perfil do navegador, sem serviços externos.
