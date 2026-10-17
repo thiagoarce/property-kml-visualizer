@@ -821,7 +821,8 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
   }
   map.on('zoomend', updateStateLabels);
   updateStateLabels();
-  L.control.attribution({ prefix: false }).addTo(map).addAttribution('Limites estaduais: IBGE · CC0');
+  map.attributionControl.setPrefix(false);
+  map.attributionControl.addAttribution('Limites estaduais: IBGE · CC0');
   L.control.scale({ imperial: false }).addTo(map);
   // OSM é OPCIONAL e fica desligado por padrão. O provedor pode bloquear file://.
   const raster = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
