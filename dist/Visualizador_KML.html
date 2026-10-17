@@ -973,31 +973,150 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
 .legacy-section>.description>.tabs,.legacy-section>.tabs{display:none!important}
 @media(max-width:700px){.legacy-section>.detail-facts,.legacy-section .detail-facts{grid-template-columns:1fr}.detail-field{padding:10px 12px}.detail-group-row{margin-top:0}}
 
+
+/* Importação sem mapa visível — ideal para abrir por duplo clique no Edge */
+.welcome-screen{position:fixed;inset:0;z-index:5000;display:grid;place-items:center;overflow:auto;padding:28px;background:radial-gradient(ellipse at 50% -20%,#245976 0%,#102f40 50%,#071d29 100%);color:white}
+.welcome-screen[hidden],.loading-screen[hidden]{display:none!important}
+.welcome-card{width:min(100%,600px);padding:44px 38px 42px;background:#ffffff0c;box-shadow:0 24px 90px #06192277;border:1px solid #ffffff2b;border-radius:23px;text-align:center;backdrop-filter:blur(12px)}
+.welcome-brand{font-size:13px;letter-spacing:.1px;display:flex;align-items:center;justify-content:center;gap:10px;color:#c1dfe9;font-weight:800}
+.welcome-mark{font-size:27px;display:grid;place-items:center;width:42px;height:42px;border:1px solid #90c3d088;border-radius:12px}
+.welcome-card h2{font-size:clamp(25px,3.4vw,36px);letter-spacing:-1.3px;line-height:1.14;margin:31px auto 13px;max-width:440px}
+.welcome-card p{font-size:14px;line-height:1.7;color:#c2dce6;max-width:440px;margin:0 auto 28px}
+.welcome-drop{width:100%;min-height:166px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;border:1.5px dashed #80bdcf;border-radius:14px;background:#1a708a50;color:white;transition:background .2s,border-color .2s}
+.welcome-drop:hover,.welcome-drop.dragging{background:#257e9e88;border-color:#d3f4ff}
+.welcome-drop-symbol{font-size:34px;line-height:1}
+.welcome-drop strong{font-size:15px}
+.welcome-drop small{font-size:12px;color:#c3dce6;font-weight:400}
+.welcome-note{display:block;font-size:11px;color:#a0c3d0;margin-top:20px}
+.welcome-error{padding:12px 15px;margin-top:15px;background:#7a313baa;border:1px solid #ff9b9b7a;border-radius:9px;font-size:12px}
+.loading-screen{position:fixed;inset:0;z-index:6000;display:grid;place-items:center;padding:25px;background:#092431e8;backdrop-filter:blur(7px);color:#f5fbfd}
+.loading-card{width:min(480px,100%);text-align:center;background:#173848;border-radius:20px;padding:43px 34px;box-shadow:0 20px 55px #09212d77;border:1px solid #3d6678}
+.loading-spinner{width:44px;height:44px;border-radius:50%;border:4px solid #58879a;border-top-color:#9ceaf7;animation:map-loader-spin .85s linear infinite;margin:0 auto 23px}
+@keyframes map-loader-spin{to{transform:rotate(360deg)}}
+.loading-eyebrow{font-size:10px;letter-spacing:1.7px;font-weight:800;color:#9cc8d6}
+.loading-card h2{font-size:18px;overflow-wrap:anywhere;margin:10px 0}
+.loading-card p{color:#d3e7ed;font-size:13px;line-height:1.4}
+.loading-track{overflow:hidden;height:5px;background:#3f6679;border-radius:10px;margin:24px 0 12px}
+.loading-track-bar{height:100%;width:35%;background:#7bd7ee;border-radius:10px;animation:map-loader-progress 1.3s ease-in-out infinite}
+@keyframes map-loader-progress{0%{transform:translateX(-110%)}100%{transform:translateX(400%)}}
+.loading-card small{font-size:11px;color:#9fc4d1}
+body.is-welcome>.topbar,body.is-welcome>.layout{visibility:hidden}
+.sidebar-top{padding:13px 15px 11px;border-bottom:1px solid #e3edf0}
+.sidebar-top .eyebrow{font-size:9px}
+.sidebar-top .file-name{font-size:14px;margin:5px 0 10px;font-weight:800}
+.sidebar-top .stats{gap:6px}
+.sidebar-top .stat{padding:9px 8px}
+.sidebar-top .stat strong{font-size:16px}
+.workspace-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:10px 12px;gap:5px;border-bottom:1px solid #dbe8ed;background:#fff}
+.workspace-tab{padding:11px 3px;border:1px solid transparent;color:#64818d;background:#f3f7f8;border-radius:9px;font-size:11px;font-weight:800}
+.workspace-tab.is-active{background:#d8eef3;color:#116f8c;border:1px solid #b6dce6}
+.workspace-pane{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden}
+.workspace-pane[hidden],.territory-panel[hidden],#workspaceLegend[hidden]{display:none!important}
+.workspace-pane .filter{padding:12px;border-top:0}
+.workspace-pane .result-header{padding:10px 12px}
+.workspace-pane .results{min-height:0;overflow-y:auto}
+#territoryPanel{overflow:auto;background:#fff}
+#territoryPanel>.analysis-result,#territoryPanel>.analysis-groups{flex:none}
+#territoryPanel #advancedFilters{flex:none}
+#territoryPanel .analysis-body{max-height:none;overflow:visible;padding:12px}
+#workspaceLegend{overflow-y:auto;background:#fff}
+#workspaceLegend .map-legend{position:static;flex:none;display:flex;width:auto;min-width:0;max-width:none;max-height:none;margin:8px 11px 16px;box-shadow:none;border-color:#e0ebee}
+#workspaceLegend .legend-entries{max-height:none;overflow:visible}
+#workspaceLegend .semantic-legend{padding:12px}
+#workspaceLegend .meaning-line{cursor:default!important}
+#workspaceLegend .meaning-line:disabled{cursor:default;opacity:1}
+#workspaceLegend .meaning-line:hover{background:transparent}
+#workspaceLegend .legend-header{background:#f1f8fa}
+#workspaceLegend #legendFooter{font-size:11px;padding:10px 12px}
+@media(max-width:680px){
+ .welcome-card{padding:27px 19px}
+ .welcome-card h2{font-size:28px}
+ .welcome-drop{min-height:145px}
+ .loading-card{padding:30px 19px}
+}
+
+
+/* Media integrada e informações abertas apenas quando úteis */
+.detail-accordion{grid-column:1/-1;border:1px solid #d6e7ed;background:#f8fcfd;border-radius:10px;margin:2px 0 7px;overflow:hidden}
+.detail-accordion>summary{padding:13px 14px;font-weight:800;color:#176b88;font-size:11px;cursor:pointer;list-style-position:inside;background:#eaf5f8}
+.detail-accordion[open]>summary{border-bottom:1px solid #dcebef}
+.detail-accordion-body{padding:12px!important;margin:0!important}
+.legacy-section .detail-accordion-body.detail-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.graph-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:3px 0 16px}
+.graph-kpi{background:#edf6f8;border:1px solid #d8e8ed;border-radius:10px;padding:14px 11px;display:flex;flex-direction:column;gap:7px}
+.graph-kpi small{color:#5a7b8c;font-size:10px;line-height:1.3}
+.graph-kpi strong{font-size:21px;line-height:1.1;color:#0c657e;font-variant-numeric:tabular-nums}
+.graph-notice{margin:10px 0 15px;border-left:3px solid #4c91aa;border-radius:5px;background:#edf7fa;color:#446677;font-size:11px;line-height:1.55;padding:12px}
+.gallery-toolbar{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:3px 0 14px;font-size:12px;color:#254d60}
+.gallery-load{border:1px solid #b8dce4;border-radius:8px;background:#e4f4f8;color:#176b86;font-size:11px;font-weight:750;padding:9px 11px}
+.photo-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 17px}
+.photo-gallery .photo-action{margin:0;padding:12px;display:flex;align-items:stretch;justify-content:space-between;min-width:0;gap:9px}
+.photo-gallery .photo-action .sharepoint-photo{max-height:180px;width:100%;object-fit:cover;border:1px solid #e0e9ec;background:#f7fafb}
+.photo-gallery .photo-caption{font-size:11px;color:#385d6d;overflow-wrap:anywhere;font-weight:700;line-height:1.4}
+.photo-error{color:#a76b3c;font-size:10px;line-height:1.45}
+.photo-gallery .photo-load-button{align-self:flex-start}
+.photo-gallery .photo-action>a{color:#167d9d;font-size:11px;font-weight:750}
+.photo-gallery .photo-action.photo-failed{border-color:#ebd8c7;background:#fdfaf7}
+.property-view .table-scroll{scrollbar-width:thin}
+.legacy-section .detail-data-table th,.legacy-section .detail-data-table td{word-break:normal;overflow-wrap:break-word}
+@media(max-width:700px){.graph-kpis,.photo-gallery,.legacy-section .detail-accordion-body.detail-facts{grid-template-columns:1fr}}
+
 </style>
 </head>
-<body>
+<body class="is-welcome">
+<section class="welcome-screen" id="welcomeScreen" aria-label="Abrir mapa" role="dialog" aria-modal="true">
+  <div class="welcome-card">
+    <div class="welcome-brand"><span class="welcome-mark">◎</span> Mapa de Planejamento</div>
+    <h2>Seu mapa, pronto para explorar.</h2>
+    <p>Abra um arquivo KML ou KMZ para visualizar os locais, consultar informações e aplicar filtros.</p>
+    <button type="button" class="welcome-drop" id="welcomeDrop">
+      <span class="welcome-drop-symbol" aria-hidden="true">↥</span>
+      <strong>Escolher arquivo KML ou KMZ</strong>
+      <small>ou arraste o arquivo para esta área</small>
+    </button>
+    <div id="welcomeError" class="welcome-error" role="alert" hidden></div>
+    <span class="welcome-note">O arquivo é aberto diretamente neste computador.</span>
+  </div>
+</section>
+<section id="loadingScreen" class="loading-screen" aria-live="polite" aria-busy="true" hidden>
+  <div class="loading-card">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <div class="loading-eyebrow">PREPARANDO MAPA</div>
+    <h2 id="loadingName">Abrindo arquivo</h2>
+    <p id="loadingStage">Lendo dados…</p>
+    <div class="loading-track"><div class="loading-track-bar"></div></div>
+    <small>Arquivos grandes podem levar alguns instantes.</small>
+  </div>
+</section>
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true">◎</span><div><h1>Mapa de Planejamento</h1><small>Visualizador KML • Leaflet</small></div></div>
-  <div class="topactions"><button class="btn btn-quiet" id="sidebarToggle" type="button" aria-expanded="true" aria-controls="sidebar">Ocultar filtros</button><span class="privacy">Dados do KML processados no navegador</span><button class="btn" id="demoButton" type="button">Reabrir exemplo</button><button class="btn btn-main" id="openButton" type="button">Abrir KML</button></div>
+  <div class="brand"><span class="logo" aria-hidden="true">◎</span><div><h1>Mapa de Planejamento</h1><small id="currentMapName">Nenhum mapa aberto</small></div></div>
+  <div class="topactions"><button class="btn btn-quiet" id="sidebarToggle" type="button" aria-expanded="true" aria-controls="sidebar">Ocultar painel</button><button class="btn btn-main" id="openButton" type="button">Trocar arquivo</button></div>
 </header>
 <div class="layout">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
-      <div class="eyebrow">Visualizador</div>
-      <h2 class="file-name" id="fileName">Exemplo fictício</h2>
-      <p class="hint">Selecione um arquivo KML local. Os dados não são enviados para o provedor de mapas.</p>
-      <div class="drop" id="dropzone" tabindex="0" role="button" aria-label="Arrastar ou selecionar KML"><span class="drop-icon">↥</span><strong>Arraste seu KML aqui</strong><small>ou clique para selecionar um arquivo .kml</small></div>
-      <input id="upload" type="file" accept=".kml,application/vnd.google-earth.kml+xml" hidden>
+      <div class="eyebrow">MAPA ABERTO</div>
+      <h2 class="file-name" id="fileName">—</h2>
+      <input id="upload" type="file" accept=".kml,.kmz,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" hidden>
       <div class="stats">
         <div class="stat"><strong id="totalCount">0</strong><small>marcadores</small></div>
         <div class="stat"><strong id="filteredCount">0</strong><small>no filtro</small></div>
         <div class="stat"><strong id="groupCount">0</strong><small>grupos</small></div>
       </div>
     </div>
-    <div class="filter"><label for="search">Encontrar local</label><input id="search" type="search" autocomplete="off" placeholder="Buscar BRA, nome, cidade..."><select id="groups" aria-label="Filtrar por pasta"><option value="">Todas as pastas</option></select></div>
-    <section class="territory-panel" id="territoryPanel">
-      <details id="advancedFilters">
-        <summary>◈ Análise territorial <span class="analysis-hint">Filtrar, combinar e agrupar</span></summary>
+    <nav class="workspace-tabs" aria-label="Ferramentas do mapa">
+      <button type="button" class="workspace-tab is-active" data-workspace="locais" aria-selected="true">Locais</button>
+      <button type="button" class="workspace-tab" data-workspace="filtros" aria-selected="false">Filtros</button>
+      <button type="button" class="workspace-tab" data-workspace="legenda" aria-selected="false">Legenda</button>
+    </nav>
+    <section id="workspaceLocais" class="workspace-pane">
+      <div class="filter"><label for="search">Encontrar local</label><input id="search" type="search" autocomplete="off" placeholder="Buscar BRA, nome, cidade..."><select id="groups" aria-label="Filtrar por pasta"><option value="">Todas as pastas</option></select></div>
+      <div class="result-header"><span>Locais encontrados</span><span id="foundCount">0</span></div>
+      <div class="results" id="results"></div>
+    </section>
+    <section class="territory-panel workspace-pane" id="territoryPanel" hidden>
+      <details id="advancedFilters" open>
+        <summary>Filtros combinados <span class="analysis-hint">Território e patrimônio</span></summary>
         <div class="analysis-body">
           <label for="question">Pesquisar por pergunta</label>
           <textarea id="question" rows="2" placeholder="Ex.: salões com mais de 5 congregações em SP"></textarea>
@@ -1019,9 +1138,16 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
       <div id="analysisResult" class="analysis-result" role="status" aria-live="polite" hidden></div>
       <div id="groupStats" class="analysis-groups" hidden></div>
     </section>
-    <div class="result-header"><span>Locais encontrados</span><span id="foundCount">0</span></div>
-    <div class="results" id="results"></div>
-    <div class="sidebar-foot">Protótipo local • KML não é executado como JavaScript • <span id="shapeCount"></span> • Fotos externas só abrem após clique</div>
+    <section id="workspaceLegend" class="workspace-pane" hidden>
+      <section class="map-legend" id="mapLegend" aria-label="Significado dos símbolos do arquivo">
+        <div class="legend-header">
+          <button id="legendToggle" type="button" aria-expanded="true" aria-controls="legendEntries">Legenda <span id="legendCount"></span></button>
+          <button id="legendClear" type="button" hidden>Limpar filtro</button>
+        </div>
+        <div id="legendEntries" class="legend-entries"></div>
+        <p id="legendFooter" class="legend-note">Simbologia do arquivo. Para filtrar, use a aba Filtros.</p>
+      </section>
+    </section>
   </aside>
   <main class="map-shell">
     <div class="map" id="map" role="application" aria-label="Mapa interativo"></div>
@@ -1048,14 +1174,6 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
         </div>
       </details>
     </div>
-    <section class="map-legend" id="mapLegend" aria-label="Legenda de símbolos do arquivo">
-      <div class="legend-header">
-        <button id="legendToggle" type="button" aria-expanded="true" aria-controls="legendEntries">▦ Legenda <span id="legendCount"></span></button>
-        <button id="legendClear" type="button" hidden>Limpar filtro</button>
-      </div>
-      <div id="legendEntries" class="legend-entries"></div>
-      <p id="legendFooter" class="legend-note">Símbolos do KML/KMZ. Clique para filtrar. Os nomes não representam uma classificação inferida.</p>
-    </section>
     <aside class="details" id="detail" hidden>
       <div class="detail-head"><div><h2 id="detailTitle">Local</h2><p id="detailSubtitle"></p></div><button class="close" id="closeDetail" type="button" aria-label="Fechar detalhes">×</button></div>
       <div class="detail-body" id="detailBody"></div>
@@ -1438,14 +1556,21 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
           img.className = 'sharepoint-photo';
           img.alt = node.getAttribute('alt') || 'Fotografia do SharePoint';
           img.referrerPolicy = 'no-referrer';
-          img.loading = 'lazy';
-          img.onload = () => { button.remove(); };
-          img.onerror = () => { img.remove(); button.textContent = 'Não foi possível carregar; abrir no SharePoint'; button.disabled = false; };
+          img.loading = 'eager';
+          img.onload = () => { button.remove(); gallery.classList.add('is-loaded'); };
+          img.onerror = () => {
+            img.remove();button.textContent='Tentar novamente';button.disabled=false;
+            gallery.classList.add('photo-failed');
+            const note=gallery.querySelector('.photo-error')||elText('span','photo-error','');
+            note.textContent='Prévia indisponível neste navegador. Use o link do SharePoint para visualizar após o login.';
+            if(!note.parentNode)gallery.append(note);
+          };
           gallery.insertBefore(img, open);
           // A imagem só faz requisição ao SharePoint após este clique.
           img.src = src;
         });
-        gallery.append(button, open);
+        const photoName=elText('span','photo-caption',src.split('/').pop()?.split('?')[0]||'Imagem do SharePoint');
+        gallery.append(photoName,button,open);
         dst.appendChild(gallery);
       }
       return;
@@ -1839,19 +1964,31 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
         continue;
       }
       const grid=elText('div','detail-facts','');
+      let destination=grid;
       const rows=[...table.rows].filter(tr=>tr.closest('table')===table);
       for(const row of rows) {
         const cells=[...row.children].filter(c=>c.tagName==='TD'||c.tagName==='TH');
         if(cells.length===1) {
-          const heading=elText('div','detail-group-row','');
-          heading.append(...[...cells[0].childNodes].map(c=>c.cloneNode(true)));
-          grid.appendChild(heading);
+          const label=cells[0].textContent.trim();
+          const isAccordion=/^detalhes (?:do|da|de|sobre)\b/i.test(label);
+          if(isAccordion){
+            const accordion=document.createElement('details');
+            accordion.className='detail-accordion';
+            const summary=elText('summary','',label.replace(/^▸\s*/,''));
+            const inner=elText('div','detail-accordion-body detail-facts','');
+            accordion.append(summary,inner);
+            grid.append(accordion);
+            destination=inner;
+          }else{
+            destination=grid;
+            grid.append(elText('div','detail-group-row',label));
+          }
           continue;
         }
         if(cells.length!==2&&cells.length!==4) {
           const original=elText('div','detail-unstructured','');
           original.textContent=row.textContent.trim();
-          if(original.textContent)grid.appendChild(original);
+          if(original.textContent)destination.appendChild(original);
           continue;
         }
         for(let i=0;i<cells.length;i+=2) {
@@ -1862,7 +1999,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
           const value=elText('dd','detail-field-value','');
           value.append(...[...cells[i+1].childNodes].map(c=>c.cloneNode(true)));
           field.appendChild(value);
-          grid.appendChild(field);
+          destination.appendChild(field);
         }
       }
       table.replaceWith(grid);
@@ -1875,6 +2012,56 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       button.replaceWith(elText('span','detail-subheading',button.textContent));
     }
     updateDetailPreferences();
+  }
+  function enhanceMediaSections(view,label) {
+    if(/fotos|imagens|galeria/i.test(label)){
+      const photos=[...view.querySelectorAll('.photo-action')];
+      if(photos.length){
+        const header=elText('div','gallery-toolbar','');
+        header.appendChild(elText('strong','',photos.length+' foto(s) vinculada(s)'));
+        const all=elText('button','gallery-load','Carregar prévias');
+        all.type='button';
+        all.addEventListener('click',()=>{
+          const buttons=photos.map(p=>p.querySelector('.photo-load-button')).filter(Boolean);
+          buttons.forEach((b,i)=>setTimeout(()=>{if(b.isConnected&&!b.disabled)b.click()},i*250));
+          all.remove();
+        });
+        header.append(all);
+        const gallery=elText('div','photo-gallery','');
+        for(const p of photos)gallery.appendChild(p);
+        view.prepend(header,gallery);
+      }
+    }
+    if(/gr[aá]fic|proje/i.test(label)){
+      for(const button of [...view.querySelectorAll('button')]){
+        if(/^(ajustar gr[aá]ficos|padr[aã]o|recente|detalhada|aplicar a todas|c[aá]lculos detalhados)$/i.test(button.textContent.trim()))
+          button.remove();
+      }
+      for(const node of [...view.querySelectorAll('*')]){
+        if(node.children.length===0&&/carregando gr[aá]fico/i.test(node.textContent))
+          node.textContent='';
+      }
+      const warnings=[...view.querySelectorAll('.chart-external-warning')];
+      if(warnings.length){
+        const notice=elText('div','graph-notice',
+          'Os gráficos completos exigem séries históricas que ainda não estão incluídas neste KML. Nenhum dado foi enviado a serviços externos.');
+        warnings[0].replaceWith(notice);
+        warnings.slice(1).forEach(n=>n.remove());
+      }
+      const content=view.textContent.replace(/\s+/g,' ');
+      const keys=['Capacidade primária','Assistência base média','Necessários hoje (90%)','Com até 20% remoto'];
+      const metrics=elText('div','graph-kpis','');
+      for(const key of keys){
+        const pattern=new RegExp(key.replace(/[()]/g,'\\<script src="./app.js"></script>')+'\\s*[:–-]?\\s*(\\d{1,6})','i');
+        const value=content.match(pattern)?.[1];
+        if(value){
+          const card=elText('div','graph-kpi','');
+          card.append(elText('small','',key),elText('strong','',Number(value).toLocaleString('pt-BR')));
+          metrics.append(card);
+        }
+      }
+      if(metrics.children.length)view.prepend(metrics);
+    }
   }
   function renderDomainDetail(feature,body) {
     const overview=renderOverview(feature,getFacts(feature));
@@ -1897,6 +2084,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       const panel=section.node;
       view.append(...[...panel.childNodes]);
       formatLegacyContent(view);
+      enhanceMediaSections(view,label);
       entries.push({label,root:view});
     }
     if(!sections.length&&feature.description.trim()) {
@@ -2054,6 +2242,17 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     if (/(?:macros?\s*\d+).*(?:rec\s|representa)/.test(paths) && features.length > 50) return 'srs';
     return 'generic';
   }
+  function setWorkspace(name) {
+    const valid=['locais','filtros','legenda'].includes(name)?name:'locais';
+    for(const button of document.querySelectorAll('.workspace-tab')){
+      const active=button.dataset.workspace===valid;
+      button.classList.toggle('is-active',active);
+      button.setAttribute('aria-selected',String(active));
+    }
+    $('workspaceLocais').hidden=valid!=='locais';
+    $('territoryPanel').hidden=valid!=='filtros';
+    $('workspaceLegend').hidden=valid!=='legenda';
+  }
   function showProfile() {
     const legend = $('mapLegend');
     legend.querySelector('.semantic-legend')?.remove();
@@ -2068,20 +2267,13 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     legend.insertBefore(head,$('legendEntries'));
   }
   function semanticLegendLine(label,color,svg,type,count) {
-    const btn=document.createElement('button');
-    btn.type='button';
-    btn.className='meaning-line'+(type && state.typeFilter===type?' is-active':'');
-    btn.disabled=false;
+    const btn=document.createElement('div');
+    btn.className='meaning-line';
     const picture=elText('span','meaning-symbol','');
     if(svg)picture.innerHTML=svg;
     else {const sw=elText('span','meaning-color','');sw.style.background=color||'#ccc';picture.append(sw);}
     btn.append(picture,elText('span','meaning-label',label));
     if(count!==null && count!==undefined)btn.append(elText('span','meaning-total',count.toLocaleString('pt-BR')));
-    if(type) btn.addEventListener('click',()=>{
-      state.typeFilter=state.typeFilter===type?'':type;
-      updateFilters(false);
-    });
-    else btn.disabled=true;
     return btn;
   }
   function renderSemanticLegend(box) {
@@ -2119,7 +2311,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       colors.append(semanticLegendLine('Aprovado para futura venda','#eb3434','',null,null));
     }
     $('legendCount').textContent=state.features.length.toLocaleString('pt-BR')+' locais';
-    $('legendClear').hidden=!state.typeFilter;
+    $('legendClear').hidden=true;
   }
   function renderLegend() {
     const box=$('legendEntries');
@@ -2467,9 +2659,10 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     showProfile();
     $('fileName').textContent = parsed.fileName;
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
-    $('shapeCount').textContent = parsed.shapes.length ? ' · ' + parsed.shapes.length + ' linhas' : '';
+    $('currentMapName').textContent = parsed.fileName;
     $('search').value = ''; state.search = ''; state.group = '';
     renderGroups(); updateFilters(true);
+    setWorkspace('locais');
     if (!state.features.length) showToast('KML válido, mas sem marcadores Point. Alguns elementos podem ser não pontuais.');
   }
   function decodeKmlBytes(bytes) {
@@ -2571,16 +2764,23 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     if (!file) return;
     const isKmz = /\.kmz$/i.test(file.name);
     if (!isKmz && !/\.kml$/i.test(file.name)) {
-      showToast('Selecione um arquivo .kml ou .kmz.');
+      $('welcomeError').textContent = 'Selecione um arquivo .kml ou .kmz.';
+      $('welcomeError').hidden = false;
       return;
     }
     const maxMB = isKmz ? MAX_KMZ_MB : MAX_KML_MB;
     if (file.size > maxMB * 1024 * 1024) {
-      showToast('Arquivo maior que ' + maxMB + ' MB. Ainda não temos leitura em streaming.');
+      $('welcomeError').textContent='Arquivo maior que ' + maxMB + ' MB. Escolha um arquivo menor.';
+      $('welcomeError').hidden=false;
       return;
     }
     const tamanhoMB = (file.size / (1024 * 1024)).toFixed(1);
-    $('fileName').textContent = 'Lendo ' + file.name + ' (' + tamanhoMB + ' MB)...';
+    const previousName = state.fileName;
+    $('loadingName').textContent = file.name;
+    $('loadingScreen').hidden = false;
+    $('loadingStage').textContent = 'Lendo arquivo · ' + tamanhoMB + ' MB';
+    $('welcomeError').hidden = true;
+    $('fileName').textContent = 'Abrindo ' + file.name + '…';
     if (file.size > LARGE_KML_MB * 1024 * 1024) {
       showToast('Arquivo grande (' + tamanhoMB + ' MB). Aguarde: a leitura pode usar bastante memória.');
     }
@@ -2589,7 +2789,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       let data = await file.arrayBuffer();
       let kmzInfo = null;
       if (isKmz) {
-        $('fileName').textContent = 'Descompactando KML dentro de ' + file.name + '...';
+        $('loadingStage').textContent = 'Descompactando conteúdo do KMZ…';
         await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
         const extracted = await extractKmzKml(data);
         data = extracted.bytes;
@@ -2597,23 +2797,31 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       }
       let str = decodeKmlBytes(data);
       data = null; // Permite descartar o buffer antes de materializar a árvore XML.
-      $('fileName').textContent = 'Interpretando ' + file.name + '...';
+      $('loadingStage').textContent = 'Interpretando locais e informações…';
       await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
       const result = parseKml(str, file.name);
       str = null;
       if (kmzInfo) {
-        $('fileName').textContent = 'Preparando símbolos locais do KMZ...';
+        $('loadingStage').textContent = 'Preparando ícones e referências…';
         await resolveKmzIcons(result, kmzInfo.zip, kmzInfo.name);
         kmzInfo.zip = null;
       }
+      $('loadingStage').textContent = 'Montando o mapa…';
       install(result);
-      if (kmzInfo) {
-        showToast('KMZ aberto: ' + kmzInfo.name + '. Ícones do pacote carregados localmente; fotos de popup ainda não são exibidas.');
-      }
+      $('welcomeScreen').hidden = true;
+      document.body.classList.remove('is-welcome');
+      // Atualiza a área do Leaflet depois de revelar a interface.
+      requestAnimationFrame(() => map.invalidateSize());
     } catch (err) {
-      $('fileName').textContent = state.fileName || 'Nenhum arquivo aberto';
-      showToast('Não foi possível abrir: ' + (err && err.message ? err.message : String(err)));
+      $('fileName').textContent = previousName || '—';
+      const message='Não foi possível abrir o arquivo: ' + (err && err.message ? err.message : String(err));
+      $('welcomeError').textContent = message;
+      $('welcomeError').hidden = false;
+      if(!previousName){$('welcomeScreen').hidden = false;document.body.classList.add('is-welcome');}
+      else showToast(message);
       console.error('Falha na importação local do KML/KMZ:', err);
+    } finally {
+      $('loadingScreen').hidden = true;
     }
   }
   const examples = [
@@ -2634,21 +2842,14 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     }));
     install({ features: f, shapes: [], fileName: 'Exemplo fictício (8 BRAs)' });
   }
-  // Somente o pacote OpenFreeMap inclui JSZip; a edição legada permanece KML-only.
-  if (typeof JSZip !== 'undefined') {
-    $('upload').accept += ',.kmz,application/vnd.google-earth.kmz';
-    const dropHint = document.querySelector('#dropzone small');
-    if (dropHint) dropHint.textContent = 'ou clique para selecionar .kml ou .kmz';
-    const dropTitle = document.querySelector('#dropzone strong');
-    if (dropTitle) dropTitle.textContent = 'Arraste seu KML ou KMZ aqui';
-  }
   $('legendToggle').addEventListener('click', () => {
     const expanded = $('legendToggle').getAttribute('aria-expanded') === 'true';
     $('legendToggle').setAttribute('aria-expanded', String(!expanded));
     $('legendEntries').hidden = expanded;
     $('legendFooter').hidden = expanded;
   });
-  $('legendClear').addEventListener('click', () => { state.iconFilter = ''; state.typeFilter='';updateFilters(false); });
+  $('legendClear').addEventListener('click', () => { state.iconFilter = ''; state.typeFilter='';$('propertyFilter').value='';updateFilters(false); });
+  for(const button of document.querySelectorAll('.workspace-tab'))button.addEventListener('click',()=>setWorkspace(button.dataset.workspace));
   for(const key of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter']) {
     $(key).addEventListener('change',()=>updateFilters(true));
   }
@@ -2661,7 +2862,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
   $('exportFiltered').addEventListener('click',exportAnalysisCSV);
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
-  $('demoButton').addEventListener('click', loadDemo);
+
   $('closeDetail').addEventListener('click', resetDetail);
   $('fitButton').addEventListener('click', () => {
     if (state.filtered.length) map.fitBounds(L.latLngBounds(state.filtered.map(f => f.pos)).pad(.1), { maxZoom: 12 });
@@ -2743,7 +2944,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
   function toggleSidebar(show) {
     document.body.classList.toggle('sidebar-collapsed',!show);
     $('showSidebar').checked=show;
-    $('sidebarToggle').textContent=show?'Ocultar filtros':'Mostrar filtros';
+    $('sidebarToggle').textContent=show?'Ocultar painel':'Mostrar painel';
     $('sidebarToggle').setAttribute('aria-expanded',String(show));
     requestAnimationFrame(()=>map.invalidateSize());
   }
@@ -2762,11 +2963,15 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     clearTimeout(filterTimer); filterTimer = setTimeout(() => updateFilters(false), 180);
   });
   $('groups').addEventListener('change', () => updateFilters(true));
-  const drop = $('dropzone');
-  ['dragenter', 'dragover'].forEach(event => drop.addEventListener(event, e => { e.preventDefault(); drop.classList.add('dragging'); }));
-  ['dragleave', 'drop'].forEach(event => drop.addEventListener(event, e => { e.preventDefault(); drop.classList.remove('dragging'); }));
-  drop.addEventListener('drop', e => { readKml(e.dataTransfer.files[0]); });
-  drop.addEventListener('click', () => $('upload').click());
+  const welcomeDrop=$('welcomeDrop');
+  welcomeDrop.addEventListener('click',()=> $('upload').click());
+  ['dragenter','dragover'].forEach(type=>welcomeDrop.addEventListener(type,e=>{
+    e.preventDefault();welcomeDrop.classList.add('dragging');
+  }));
+  ['dragleave','drop'].forEach(type=>welcomeDrop.addEventListener(type,e=>{
+    e.preventDefault();welcomeDrop.classList.remove('dragging');
+  }));
+  welcomeDrop.addEventListener('drop',e=>readKml(e.dataTransfer.files[0]));
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
   $('statusTitle').textContent = 'Brasil · mapa vetorial local';
