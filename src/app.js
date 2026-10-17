@@ -641,32 +641,118 @@
       panel.insertBefore(chart,panel.firstChild);
     }
   }
-  function showDetail(feature) {
-    state.selected = feature;
-    $('detailTitle').textContent = feature.name;
-    $('detailSubtitle').textContent = feature.path.join(' / ') || 'Sem pasta';
-    const body = $('detailBody');
-    body.replaceChildren();
-    if(state.profile !== 'generic') {
-      const facts=getFacts(feature);
-      body.appendChild(renderOverview(feature,facts));
-    }else {
-      const meta = elText('div','metadata',
-        'Latitude '+feature.pos[0].toFixed(5)+' · Longitude '+feature.pos[1].toFixed(5));
-      body.appendChild(meta);
+  // Painel SRs/Vendas: o resumo novo vem primeiro; o HTML legado não é duplicado
+  // nem despejado ao longo da página. Ele continua disponível sob demanda.
+  function updateDetailPreferences() {
+    const detail=$('detailBody');
+    detail.classList.toggle('hide-metrics',!$('showMetrics').checked);
+    detail.classList.toggle('hide-empty-fields',!$('showEmptyFields').checked);
+    for (const row of detail.querySelectorAll('.description tr, .legacy-section tr')) {
+      const cells=[...row.children].filter(n=>n.tagName==='TD');
+      if(!cells.length)continue;
+      const values=cells.filter((n,i)=>i%2===1);
+      const hasContent=values.some(n=>n.textContent.trim()||n.querySelector('img,a[href],button'));
+      const isBlank=values.length && !hasContent;
+      row.classList.toggle('field-is-empty',!!isBlank);
     }
-    body.appendChild(safeDescription(feature.description));
-    const md = Object.entries(feature.metadata);
-    if (md.length && !feature.description.trim()) {
-      const table = document.createElement('table');
-      for (const [k, v] of md) {
-        const tr = table.insertRow(); tr.insertCell().textContent = k; tr.insertCell().textContent = v;
+  }
+  function normalizedTabLabel(label) {
+    const short=String(label||'').replace(/\s+/g,' ').trim();
+    if(/^resumo$/i.test(short))return 'Resumo do KML';
+    if(/^dados completos?$/i.test(short))return 'Dados completos';
+    if(/^nomes e contatos$/i.test(short))return 'Contatos';
+    if(/^gr[aá]ficos e proje[cç][oõ]es$/i.test(short))return 'Gráficos';
+    return short.slice(0,32)||'Detalhes';
+  }
+  function renderDomainDetail(feature,body) {
+    const overview=renderOverview(feature,getFacts(feature));
+    const description=safeDescription(feature.description);
+    const buttons=[...description.querySelectorAll('.tabs button')];
+    const panels=[...description.querySelectorAll('.tabcontent, .tab-pane, .tab-panel')];
+    const nav=elText('nav','property-nav','');
+    nav.setAttribute('aria-label','Seções do imóvel');
+    const host=elText('div','property-sections','');
+    const entries=[{label:'Visão geral',root:elText('section','property-view property-main','')}];
+    entries[0].root.appendChild(overview);
+    if(buttons.length && panels.length){
+      const used=new Set();
+      for(let i=0;i<Math.min(panels.length,buttons.length);i++){
+        const label=normalizedTabLabel(buttons[i].textContent);
+        const base=label;
+        let unique=base,number=2;
+        while(used.has(unique)){unique=base+' '+number++;}
+        used.add(unique);
+        const view=elText('section','property-view legacy-section','');
+        const panel=panels[i];
+        panel.style.display='block';
+        view.appendChild(panel);
+        entries.push({label:unique,root:view});
       }
-      body.appendChild(table);
+    } else if(feature.description.trim()){
+      const view=elText('section','property-view legacy-section','');
+      view.appendChild(description);
+      entries.push({label:'Informações do KML',root:view});
     }
-    activateTabs(body);
-    if(state.profile !== 'generic')enhanceLocalCharts(body);
-    $('detail').hidden = false;
+    if(buttons.length&&panels.length){
+      const original=elText('section','property-view legacy-source','');
+      const trigger=elText('button','legacy-reveal','Carregar visualização original do KML');
+      trigger.type='button';
+      const placeholder=elText('p','legacy-help',
+        'Mostra a estrutura original do Google Earth, inclusive campos e tabelas repetidos. Somente para consulta.');
+      original.append(trigger,placeholder);
+      trigger.addEventListener('click',()=>{
+        trigger.remove();
+        const raw=safeDescription(feature.description);
+        original.appendChild(raw);
+        activateTabs(raw);
+        enhanceLocalCharts(raw);
+        updateDetailPreferences();
+      },{once:true});
+      entries.push({label:'Fonte original',root:original});
+    }
+    for(const [index,entry] of entries.entries()){
+      const button=elText('button','property-nav-tab',entry.label);
+      button.type='button';
+      button.setAttribute('aria-pressed',index===0?'true':'false');
+      button.classList.toggle('is-active',index===0);
+      entry.root.hidden=index!==0;
+      button.addEventListener('click',()=>{
+        for(let i=0;i<entries.length;i++){
+          entries[i].root.hidden=i!==index;
+          nav.children[i].classList.toggle('is-active',i===index);
+          nav.children[i].setAttribute('aria-pressed',i===index?'true':'false');
+        }
+        body.scrollTop=0;
+      });
+      nav.appendChild(button);
+      host.appendChild(entry.root);
+    }
+    body.append(nav,host);
+    // Séries já presentes no arquivo geram um gráfico local, sem API externa.
+    enhanceLocalCharts(host);
+    updateDetailPreferences();
+  }
+  function showDetail(feature) {
+    state.selected=feature;
+    $('detailTitle').textContent=feature.name;
+    $('detailSubtitle').textContent=feature.path.join(' / ')||'Sem pasta';
+    const body=$('detailBody');
+    body.replaceChildren();
+    if(state.profile!=='generic') {
+      renderDomainDetail(feature,body);
+    }else{
+      body.appendChild(elText('div','metadata',
+        'Latitude '+feature.pos[0].toFixed(5)+' · Longitude '+feature.pos[1].toFixed(5)));
+      body.appendChild(safeDescription(feature.description));
+      const md=Object.entries(feature.metadata);
+      if(md.length&&!feature.description.trim()){
+        const table=document.createElement('table');
+        for(const [k,v] of md){const tr=table.insertRow();tr.insertCell().textContent=k;tr.insertCell().textContent=v;}
+        body.appendChild(table);
+      }
+      activateTabs(body);
+    }
+    $('detail').hidden=false;
   }
   function renderGroups() {
     const select = $('groups');
