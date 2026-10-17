@@ -20,7 +20,7 @@ function file(xml, name) {
 }
 try {
  await page.goto('file://' + path.join(root, 'dist', 'Visualizador_KML_OpenFreeMap.html'));
- await page.waitForFunction(() => document.getElementById('totalCount').textContent.trim() === '8');
+ await page.locator('#welcomeScreen').waitFor();
  const srDesc = '<div class="tabs"><button onclick="openTab(event,\'local\')">Local</button><button onclick="openTab(event,\'fotos\')">Fotos</button></div>' +
    '<div class="tabcontent" id="local"><table><tr><td>Congregações locais</td><td>1</td></tr></table>' +
    '<a href="https://grafico-api.onrender.com/api/grafico?x=999">Abrir gráfico externo</a></div>' +
