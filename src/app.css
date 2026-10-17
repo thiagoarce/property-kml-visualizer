@@ -405,3 +405,30 @@ body.is-welcome>.topbar,body.is-welcome>.layout{visibility:hidden}
 .rent-detail-row[hidden],.legacy-source tr[hidden]{display:none!important}
 .legacy-section .photo-caption{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere}
 @media(max-width:700px){.legacy-source .detail-facts{grid-template-columns:1fr}}
+
+
+/* Aba Gráficos: indicadores legíveis + comparação gerada 100% no navegador. */
+.graph-dashboard{display:flex;flex-direction:column;gap:14px;margin:17px 0 14px}
+.graph-dashboard .graph-kpis{margin:0}
+.graph-comparison{border:1px solid #d7e8ee;background:#fff;border-radius:13px;padding:16px 15px 12px;box-shadow:0 2px 12px #153c4c0a}
+.graph-comparison h3{font-size:13px;color:#204f64;font-weight:800;margin:0 0 4px}
+.graph-comparison .graph-help{font-size:10.5px;color:#698492;line-height:1.5;margin:0 0 17px}
+.graph-bar-row{margin-bottom:15px}
+.graph-bar-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;color:#456879;font-size:11px;margin-bottom:6px;line-height:1.35}
+.graph-bar-head strong{font-size:13px;color:#183e53;font-variant-numeric:tabular-nums}
+.graph-bar-track{height:12px;background:#eaf2f5;border-radius:100px;overflow:hidden}
+.graph-bar-fill{height:100%;background:#4b91a9;border-radius:100px;min-width:0}
+.graph-bar-capacity{background:#244f68}
+.graph-bar-attendance{background:#1590b5}
+.graph-bar-needed{background:#e0a348}
+.graph-bar-remote{background:#37a78a}
+.graph-occupancy{font-size:10.5px;font-weight:700;color:#527080;background:#eff6f8;border-radius:8px;padding:9px 11px;margin:4px 0 0}
+.graph-dashboard .local-chart{margin:0}
+.graph-notice{margin:0 0 15px}
+.graph-source{border:1px solid #d6e6eb;border-radius:10px;background:#fff;margin:7px 0 20px;overflow:hidden}
+.graph-source>summary{padding:13px 15px;cursor:pointer;color:#28627b;font-size:11px;font-weight:800;background:#f0f7f9;list-style-position:inside}
+.graph-source[open]>summary{border-bottom:1px solid #dce9ee}
+.graph-source-content{padding:14px 15px;color:#426575;font-size:11px;line-height:1.6;max-height:400px;overflow:auto}
+.graph-source-content .graph-kpis,.graph-source-content .local-chart{display:none}
+.graph-source-content .detail-facts{margin:0 0 14px}
+@media(max-width:700px){.graph-comparison{padding:13px}.graph-dashboard{gap:11px}}
