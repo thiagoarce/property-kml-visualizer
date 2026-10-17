@@ -38,7 +38,7 @@ Isso compila `src/index.html`, `src/app.css`, `src/app.js` e as bibliotecas vers
 ### Organização
 
 - `src/`: código-fonte editável.
-- `vendor/`: Leaflet 1.9.4 e Leaflet.markercluster 1.5.3, bibliotecas MIT empacotadas.
+- `vendor/`: Leaflet 1.9.4 e Leaflet.markercluster 1.5.3, bibliotecas empacotadas com suas licenças.
 - `scripts/build.py`: empacotador estático.
 - `dist/Visualizador_KML.html`: arquivo final para usuários leigos.
 - `exemplos/`: dados fictícios para teste.
@@ -54,6 +54,6 @@ Isso compila `src/index.html`, `src/app.css`, `src/app.js` e as bibliotecas vers
 
 ## Licenças
 
-Leaflet 1.9.4 © 2010–2024 Vladimir Agafonkin e colaboradores, MIT.
+Leaflet 1.9.4 © Volodymyr Agafonkin e colaboradores, BSD-2-Clause.
 Leaflet.markercluster 1.5.3 © Dave Leaver e colaboradores, MIT.
 Veja `THIRD_PARTY_NOTICES.md` e os projetos oficiais para as licenças completas.
