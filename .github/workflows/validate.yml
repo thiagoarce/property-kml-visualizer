@@ -1,0 +1,20 @@
+name: Validate standalone viewer
+
+on:
+  push:
+    branches: ["main", "feat/**"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check app JavaScript syntax
+        run: node --check src/app.js
+      - name: Rebuild standalone HTML
+        run: python3 scripts/build.py
+      - name: Ensure built HTML is reproducible
+        run: git diff --exit-code -- dist/Visualizador_KML.html
+      - name: Validate privacy and synthetic sample
+        run: python3 scripts/check.py
