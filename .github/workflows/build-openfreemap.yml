@@ -85,6 +85,8 @@ jobs:
         run: node tests/popup-tiles-browser.mjs
       - name: Validar abas do KML e tabelas novas
         run: node tests/popup-semantic-tabs-browser.mjs
+      - name: Validar entrada e navegação produtiva
+        run: node tests/import-workspace-browser.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: Visualizador-KML-OpenFreeMap-file-test
