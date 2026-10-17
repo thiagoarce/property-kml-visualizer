@@ -28,7 +28,7 @@ const xml='<?xml version="1.0"?><kml xmlns="http://www.opengis.net/kml/2.2"><Doc
 const file={name:'SRs.kml',mimeType:'application/vnd.google-earth.kml+xml',buffer:Buffer.from(xml,'utf8')};
 try {
  await page.goto('file://'+path.join(root,'dist','Visualizador_KML_OpenFreeMap.html'));
- await page.locator('#totalCount').filter({hasText:'8'}).waitFor();
+ await page.waitForFunction(() => document.getElementById('totalCount').textContent.trim() === '8');
  await page.locator('#upload').setInputFiles(file);
  await page.waitForFunction(()=>document.getElementById('fileName').textContent.trim()==='SRs.kml');
  assert.equal(await page.locator('#stateFilter option[value="SP"]').count(),1);
