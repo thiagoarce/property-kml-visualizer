@@ -375,6 +375,7 @@
     if (isAllowed) {
       if (tag === 'a') {
         const href = node.getAttribute('href') || '';
+        if (href.startsWith('#') && /^[\w.-]{1,80}$/.test(href.slice(1))) out.dataset.kmlTarget = href.slice(1);
         if (isExternalChartUrl(href)) {
           const warning = document.createElement('span');
           warning.className = 'chart-external-warning';
@@ -402,8 +403,13 @@
       if (tag === 'button') {
         out.type = 'button';
         const onclick = node.getAttribute('onclick') || '';
-        const found = onclick.match(/(?:openTab|mostrarAba|showTab)\([^,]*,\s*['"]([^'"]+)['"]/i);
-        if (found) out.dataset.kmlTarget = found[1];
+        // Reconhece os alvos de abas do HTML legado sem executar seu JavaScript.
+        // Suporta openTab(event, 'local'), trocarAba('tab_local') e variações.
+        const safeTabHandler = /(?:openTab|mostrarAba|showTab|trocarAba|switchTab|abrirAba|mostrarTab|setTab|selecionarAba|activateTab|mudarAba|trocarTab)\s*\(/i;
+        const literals = [...onclick.matchAll(/['"]([^'"]{1,100})['"]/g)];
+        if (safeTabHandler.test(onclick) && literals.length) out.dataset.kmlTarget = literals[literals.length - 1][1];
+        const explicit = node.getAttribute('data-tab') || node.getAttribute('data-target') || node.getAttribute('aria-controls');
+        if (explicit && /^[\w.-]{1,80}$/.test(explicit)) out.dataset.kmlTarget = explicit;
       }
       dst.appendChild(out);
     }
