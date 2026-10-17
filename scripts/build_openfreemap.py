@@ -68,13 +68,13 @@ def main():
     # Nenhum CDN é requisitado ao abrir o arquivo gerado.
     page = must_replace(
         page, "</head>",
-        "<style>\\n/* MapLibre GL JS 5.12.0 (BSD-3-Clause) */\\n" + css + "\\n</style>\\n</head>"
+        "<style>\n/* MapLibre GL JS 5.12.0 (BSD-3-Clause) */\n" + css + "\n</style>\n</head>"
     )
 
-    anchor = "<script>\\n/* Property KML Visualizer"
+    anchor = "<script>\n/* Property KML Visualizer"
     injection = (
-        "<script>\\n/* MapLibre GL JS 5.12.0 */\\n" + safe_script(maplibre) + "\\n</script>\\n"
-        "<script>\\n/* @maplibre/maplibre-gl-leaflet 0.1.4 */\\n" + safe_script(adapter) + "\\n</script>\\n"
+        "<script>\n/* MapLibre GL JS 5.12.0 */\n" + safe_script(maplibre) + "\n</script>\n"
+        "<script>\n/* @maplibre/maplibre-gl-leaflet 0.1.4 */\n" + safe_script(adapter) + "\n</script>\n"
     )
     page = must_replace(page, anchor, injection + anchor)
 
@@ -122,8 +122,6 @@ def main():
         "'O OpenStreetMap pode bloquear arquivos abertos por duplo clique. Nenhum dado do KML é enviado.'",
         "'Carregando ruas vetoriais do OpenFreeMap. Dados do KML permanecem locais.'"
     )
-    page = must_replace(page, "  // Cartografia local SEM solicitações de rede: geometrias públicas dos 27 estados.",
-                        "  // Cartografia local SEM solicitações de rede: geometrias públicas dos 27 estados.") if False else page
 
     if re.search(r'<(?:script|link)\b[^>]+(?:src|href)\s*=\s*["\']https?://', page, re.I):
         raise RuntimeError("O HTML final contém referência a JS/CSS remoto: abortando.")
@@ -132,7 +130,7 @@ def main():
     assert "L.maplibreGL" in page
     assert "tiles.openfreemap.org/styles/liberty" in page
     OUTPUT.write_text(page, encoding="utf-8")
-    print(f"\\nGERADO: {OUTPUT} ({OUTPUT.stat().st_size:,} bytes)")
+    print(f"\nGERADO: {OUTPUT} ({OUTPUT.stat().st_size:,} bytes)")
     print("ABRA COM DOIS CLIQUES (file://) e marque 'OpenFreeMap (teste)'.")
     print("O usuário final NÃO precisa de Python, Node ou conexão para abrir a interface.")
     print("Somente a cartografia vetorial exige internet. O KML fica no navegador.")
