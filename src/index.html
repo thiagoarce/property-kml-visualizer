@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src data: blob: https://tile.openstreetmap.org https://services.arcgisonline.com https://jwsite.sharepoint.com; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Visualizador KML — Mapa de Planejamento</title>
+<link rel="stylesheet" href="../vendor/leaflet.css">
+<link rel="stylesheet" href="../vendor/MarkerCluster.css">
+<link rel="stylesheet" href="./app.css">
+</head>
+<body class="is-welcome">
+<section class="welcome-screen" id="welcomeScreen" aria-label="Abrir mapa" role="dialog" aria-modal="true">
+  <div class="welcome-card">
+    <div class="welcome-brand"><span class="welcome-mark">◎</span> Mapa de Planejamento</div>
+    <h2>Seu mapa, pronto para explorar.</h2>
+    <p>Abra um arquivo KML ou KMZ para visualizar os locais, consultar informações e aplicar filtros.</p>
+    <button type="button" class="welcome-drop" id="welcomeDrop">
+      <span class="welcome-drop-symbol" aria-hidden="true">↥</span>
+      <strong>Escolher arquivo KML ou KMZ</strong>
+      <small>ou arraste o arquivo para esta área</small>
+    </button>
+    <div id="welcomeError" class="welcome-error" role="alert" hidden></div>
+    <span class="welcome-note">O arquivo é aberto diretamente neste computador.</span>
+  </div>
+</section>
+<section id="loadingScreen" class="loading-screen" aria-live="polite" aria-busy="true" hidden>
+  <div class="loading-card">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <div class="loading-eyebrow">PREPARANDO MAPA</div>
+    <h2 id="loadingName">Abrindo arquivo</h2>
+    <p id="loadingStage">Lendo dados…</p>
+    <div class="loading-track"><div class="loading-track-bar"></div></div>
+    <small>Arquivos grandes podem levar alguns instantes.</small>
+  </div>
+</section>
+<header class="topbar">
+  <div class="brand"><span class="logo" aria-hidden="true">◎</span><div><h1>Mapa de Planejamento</h1><small id="currentMapName">Nenhum mapa aberto</small></div></div>
+  <div class="topactions"><button class="btn btn-quiet" id="sidebarToggle" type="button" aria-expanded="true" aria-controls="sidebar">Ocultar painel</button><button class="btn btn-main" id="openButton" type="button">Trocar arquivo</button></div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <div class="eyebrow">MAPA ABERTO</div>
+      <h2 class="file-name" id="fileName">—</h2>
+      <input id="upload" type="file" accept=".kml,.kmz,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" hidden>
+      <div class="stats">
+        <div class="stat"><strong id="totalCount">0</strong><small>marcadores</small></div>
+        <div class="stat"><strong id="filteredCount">0</strong><small>no filtro</small></div>
+        <div class="stat"><strong id="groupCount">0</strong><small>grupos</small></div>
+      </div>
+    </div>
+    <nav class="workspace-tabs" aria-label="Ferramentas do mapa">
+      <button type="button" class="workspace-tab is-active" data-workspace="locais" aria-selected="true">Locais</button>
+      <button type="button" class="workspace-tab" data-workspace="filtros" aria-selected="false">Filtros</button>
+      <button type="button" class="workspace-tab" data-workspace="legenda" aria-selected="false">Legenda</button>
+    </nav>
+    <section id="workspaceLocais" class="workspace-pane">
+      <div class="filter"><label for="search">Encontrar local</label><input id="search" type="search" autocomplete="off" placeholder="Buscar BRA, nome, cidade..."><select id="groups" aria-label="Filtrar por pasta"><option value="">Todas as pastas</option></select></div>
+      <div class="result-header"><span>Locais encontrados</span><span id="foundCount">0</span></div>
+      <div class="results" id="results"></div>
+    </section>
+    <section class="territory-panel workspace-pane" id="territoryPanel" hidden>
+      <details id="advancedFilters" open>
+        <summary>Filtros combinados <span class="analysis-hint">Território e patrimônio</span></summary>
+        <div class="analysis-body">
+          <label for="question">Pesquisar por pergunta</label>
+          <textarea id="question" rows="2" placeholder="Ex.: salões com mais de 5 congregações em SP"></textarea>
+          <div class="analysis-actions"><button type="button" id="askButton">Pesquisar no mapa</button><button type="button" id="clearAdvanced">Limpar filtros</button></div>
+          <div class="analysis-hint" id="questionHint">Busca local por critérios reconhecidos. Não usa IA nem envia o KML.</div>
+          <div class="facet-grid">
+            <label>Estado (UF)<select id="stateFilter" aria-label="Filtrar por estado"><option value="">Todas as UFs</option></select></label>
+            <label>Macro<select id="macroFilter" aria-label="Filtrar por Macro"><option value="">Todas as Macros</option></select></label>
+            <label>REC<select id="recFilter" aria-label="Filtrar por REC"><option value="">Todos os RECs</option></select></label>
+            <label>Tipo de imóvel<select id="propertyFilter" aria-label="Filtrar por tipo de imóvel"><option value="">Todos os tipos</option></select></label>
+            <label>Congregações<select id="congFilter" aria-label="Filtrar por congregações"><option value="">Todas as quantidades</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5 ou mais</option><option value="6+">Mais de 5 (6+)</option><option value="unique">Única na cidade</option><option value="unknown">Não identificadas</option></select></label>
+            <label>Situação<select id="caseFilter" aria-label="Filtrar por situação"><option value="">Todas as situações</option></select></label>
+          </div>
+          <label for="groupBy">Agrupar resultados por</label>
+          <select id="groupBy"><option value="">Sem agrupamento</option><option value="uf">Estado</option><option value="macro">Macro</option><option value="rec">REC</option><option value="type">Tipo de imóvel</option><option value="cong">Congregações (categoria)</option><option value="status">Situação</option></select>
+          <button type="button" id="exportFiltered">Exportar resultados (.csv)</button>
+        </div>
+      </details>
+      <div id="analysisResult" class="analysis-result" role="status" aria-live="polite" hidden></div>
+      <div id="groupStats" class="analysis-groups" hidden></div>
+    </section>
+    <section id="workspaceLegend" class="workspace-pane" hidden>
+      <section class="map-legend" id="mapLegend" aria-label="Significado dos símbolos do arquivo">
+        <div class="legend-header">
+          <button id="legendToggle" type="button" aria-expanded="true" aria-controls="legendEntries">Legenda <span id="legendCount"></span></button>
+          <button id="legendClear" type="button" hidden>Limpar filtro</button>
+        </div>
+        <div id="legendEntries" class="legend-entries"></div>
+        <p id="legendFooter" class="legend-note">Simbologia do arquivo. Para filtrar, use a aba Filtros.</p>
+      </section>
+    </section>
+  </aside>
+  <main class="map-shell">
+    <div class="map" id="map" role="application" aria-label="Mapa interativo"></div>
+    <div class="map-status"><b id="statusTitle">Mapa local</b><small>Limites dos 27 estados incorporados. Sem conexão externa por padrão.</small></div>
+    <div class="controls">
+      <button class="btn" type="button" id="fitButton">Ajustar mapa</button>
+      <label class="basemap-control">Mapa-base
+        <select id="mapStyle" aria-label="Estilo do mapa">
+          <option value="liberty">Ruas · Liberty</option>
+          <option value="positron">Claro · Positron</option>
+          <option value="bright">Contraste · Bright</option>
+          <option value="dark">Escuro · Dark</option>
+          <option value="satellite">Satélite Esri (teste)</option>
+        </select>
+      </label>
+      <label class="toggle"><input type="checkbox" id="osmToggle">Online</label>
+      <details class="display-menu" id="displayMenu"><summary>Exibição</summary>
+        <div class="display-options">
+          <label><input type="checkbox" id="showSidebar" checked> Painel de filtros</label>
+          <label><input type="checkbox" id="showLegend" checked> Legenda</label>
+          <label><input type="checkbox" id="showMapStatus" checked> Informações do mapa</label>
+          <label><input type="checkbox" id="showMetrics" checked> Indicadores do imóvel</label>
+          <label><input type="checkbox" id="showEmptyFields"> Campos sem dados</label>
+        </div>
+      </details>
+    </div>
+    <aside class="details" id="detail" hidden>
+      <div class="detail-head"><div><h2 id="detailTitle">Local</h2><p id="detailSubtitle"></p></div><button class="close" id="closeDetail" type="button" aria-label="Fechar detalhes">×</button></div>
+      <div class="detail-body" id="detailBody"></div>
+    </aside>
+    <div class="toast" id="toast" hidden role="status"></div>
+  </main>
+</div>
+<script src="../vendor/leaflet.min.js"></script>
+<script src="../vendor/leaflet.markercluster.js"></script>
+<script src="./brazil-states.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

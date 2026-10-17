@@ -1,0 +1,26 @@
+# Dados reais e arquivos de uso interno: nunca versionar
+*.kml
+*.kmz
+*.xls
+*.xlsx
+*.xlsm
+*.csv
+*.sqlite
+*.db
+*.pdf
+*.zip
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.geojson
+*.gpkg
+.env
+.env.*
+*.key
+*.pem
+# A amostra abaixo é EXCLUSIVAMENTE sintética.
+!exemplos/exemplo-ficticio.kml
+__pycache__/
+.DS_Store
+Thumbs.db

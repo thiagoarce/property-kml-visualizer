@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<name>Mapa demonstrativo — dados fictícios</name>
+<Style id="normal"><IconStyle><color>ff9f8216</color></IconStyle></Style>
+<Style id="alerta"><IconStyle><color>ff326cbd</color></IconStyle></Style>
+<StyleMap id="mapa_normal"><Pair><key>normal</key><styleUrl>#normal</styleUrl></Pair></StyleMap>
+<Folder><name>Macro 4</name><Folder><name>REC João Pessoa</name>
+<Placemark>
+<name>BRA9902 — João Pessoa/PB</name>
+<styleUrl>#mapa_normal</styleUrl>
+<description><![CDATA[
+<h2>Exemplo fictício</h2>
+<p>Informações ilustrativas, sem relação com unidades reais.</p>
+<div class="tabs"><button onclick="openTab(event,'local')">Local</button><button onclick="openTab(event,'congregacoes')">Congregações</button></div>
+<div class="tabcontent" id="local"><p>Capacidade demonstrativa: 250 lugares.</p></div>
+<div class="tabcontent" id="congregacoes"><table><tr><th>Congregação</th><th>Assistência</th></tr><tr><td>Exemplo fictício</td><td>180</td></tr></table></div>
+]]></description>
+<ExtendedData><Data name="BRA"><value>BRA9902</value></Data></ExtendedData>
+<Point><coordinates>-34.87,-7.12,0</coordinates></Point>
+</Placemark></Folder><Folder><name>REC Recife</name>
+<Placemark><name>BRA9901 — Recife/PE</name><styleUrl>#alerta</styleUrl>
+<description><![CDATA[<p><b>Exemplo fictício de planejamento</b></p><p>Nenhum dado real foi utilizado.</p>]]></description>
+<Point><coordinates>-34.88,-8.05,0</coordinates></Point></Placemark></Folder>
+</Folder>
+<Folder><name>Macro 5</name>
+<Placemark><name>BRA9904 — Brasília/DF</name><description>Local fictício para testes.</description><Point><coordinates>-47.88,-15.79,0</coordinates></Point></Placemark>
+<Placemark><name>BRA9905 — Manaus/AM</name><Point><coordinates>-60.02,-3.1,0</coordinates></Point></Placemark>
+</Folder>
+<Folder><name>Contornos fictícios</name>
+<Placemark><name>Rota demonstrativa</name><LineString><coordinates>-47.88,-15.79,0 -46.63,-23.55,0</coordinates></LineString></Placemark>
+</Folder>
+</Document></kml>

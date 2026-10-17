@@ -1,0 +1,94 @@
+name: Testar HTML unico OpenFreeMap
+
+on:
+  push:
+    branches:
+      - feat/openfreemap-file-test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  empacotar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar sintaxe
+        run: python -m py_compile scripts/build.py scripts/build_openfreemap.py
+      - name: Regressao do parser de coordenadas KML
+        run: node tests/coordinates.test.cjs
+      - name: Validar sintaxe do parser JS
+        run: node --check src/app.js
+      - name: Gerar HTML unico para teste
+        run: python scripts/build_openfreemap.py
+      - name: Conferir dependencias incorporadas
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          file=Path('dist/Visualizador_KML_OpenFreeMap.html')
+          assert file.exists()
+          data=file.read_text(encoding='utf-8')
+          assert 'L.maplibreGL' in data
+          assert 'tiles.openfreemap.org/styles/liberty' in data
+          assert len(data)>200000
+          assert not re.search(r'<script[^>]+src=', data, re.I)
+          assert not re.search(r'<link[^>]+rel=["\x27]stylesheet', data, re.I)
+          print('HTML standalone compilado:',file.stat().st_size,'bytes')
+          PY
+      - name: Gerar KMZ fictício para teste local
+        run: |
+          python - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from pathlib import Path
+          source=Path('exemplos/exemplo-ficticio.kml')
+          with ZipFile('exemplos/exemplo-ficticio.kmz', 'w', ZIP_DEFLATED) as z:
+            z.write(source, arcname='doc.kml')
+          print('KMZ de teste gerado, apenas com dados fictícios')
+          PY
+      - name: Gerar KMZ fictício com ícone PNG local
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          import zlib,struct
+          def chunk(tag,data):
+            return struct.pack('>I',len(data))+tag+data+struct.pack('>I',zlib.crc32(tag+data)&0xffffffff)
+          pixel=b'\x00'+(b'\x00\xcc\x00\xff'*8)
+          png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',8,8,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(pixel*8))+chunk(b'IEND',b'')
+          kml=Path('exemplos/estilos-ficticios.kml')
+          with ZipFile('exemplos/estilos-ficticios.kmz','w',ZIP_DEFLATED) as z:
+            z.write(kml,arcname='doc.kml')
+            z.writestr('icons/green-square.png',png)
+          print('KMZ sintético de ícones gerado')
+          PY
+      - name: Instalar navegador no ambiente de teste
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verificar KMZ no HTML local
+        run: node tests/kmz-browser-smoke.mjs
+      - name: Verificar ícones internos e legenda local
+        run: node tests/icons-legend-browser.mjs
+      - name: Validar perfis SRs e Vendas sem envio externo
+        run: node tests/srs-vendas-browser.mjs
+      - name: Validar painel moderno, ícones e gráfico local
+        run: node tests/dashboard-browser.mjs
+      - name: Validar filtros territoriais e pesquisa sem rede
+        run: node tests/territorial-filters-browser.mjs
+      - name: Validar popup limpo e estilos cartográficos
+        run: node tests/popup-tiles-browser.mjs
+      - name: Validar abas do KML e tabelas novas
+        run: node tests/popup-semantic-tabs-browser.mjs
+      - name: Validar entrada e navegação produtiva
+        run: node tests/import-workspace-browser.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Visualizador-KML-OpenFreeMap-file-test
+          path: dist/Visualizador_KML_OpenFreeMap.html
+          if-no-files-found: error
