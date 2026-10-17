@@ -28,7 +28,7 @@ try {
  await page.locator('#upload').setInputFiles(file(point(srDesc,'BRA9901'), 'SRs.kml'));
  await page.waitForFunction(() => document.getElementById('fileName').textContent.trim() === 'SRs.kml');
  assert.equal(await page.locator('body').getAttribute('data-map-profile'),'srs');
- assert.ok(await page.getByText('Como interpretar o mapa SRs').count());
+ assert.ok(await page.getByText('LEGENDA · SALÕES DO REINO').count());
  await page.locator('.result').first().click();
  assert.equal(await page.locator('#detailBody .tabs button').count(),2);
  assert.ok(await page.locator('.chart-external-warning').count(), 'Link Render não pode ser oferecido como gráfico');
@@ -43,7 +43,7 @@ try {
  ));
  await page.waitForFunction(() => document.getElementById('fileName').textContent.trim() === 'SRs - Vendas.kml');
  assert.equal(await page.locator('body').getAttribute('data-map-profile'),'vendas');
- assert.ok(await page.getByText('Mapa de imóveis à venda').count());
+ assert.ok(await page.getByText('LEGENDA · IMÓVEIS À VENDA').count());
  assert.equal(requests.length,0);
  assert.deepEqual(errors,[]);
  console.log('OK: SRs e Vendas, abas, galeria sob clique, gráfico externo bloqueado, sem rede');
