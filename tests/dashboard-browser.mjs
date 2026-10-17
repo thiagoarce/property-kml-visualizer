@@ -21,7 +21,7 @@ function place(desc,code='BRA9901'){
 }
 try{
  await page.goto('file://'+path.join(root,'dist','Visualizador_KML_OpenFreeMap.html'));
- await page.locator('#totalCount').filter({hasText:'8'}).waitFor();
+ await page.waitForFunction(() => document.getElementById('totalCount').textContent.trim() === '8');
  const sr='<div class="tabs"><button onclick="openTab(event,\'local\')">Local</button>'+
   '<button onclick="openTab(event,\'graficos\')">Gráficos e projeções</button></div>'+
   '<div class="tabcontent" id="local"><table>'+
