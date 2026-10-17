@@ -456,6 +456,14 @@
     }));
     install({ features: f, shapes: [], fileName: 'Exemplo fictício (8 BRAs)' });
   }
+  // Somente o pacote OpenFreeMap inclui JSZip; a edição legada permanece KML-only.
+  if (typeof JSZip !== 'undefined') {
+    $('upload').accept += ',.kmz,application/vnd.google-earth.kmz';
+    const dropHint = document.querySelector('#dropzone small');
+    if (dropHint) dropHint.textContent = 'ou clique para selecionar .kml ou .kmz';
+    const dropTitle = document.querySelector('#dropzone strong');
+    if (dropTitle) dropTitle.textContent = 'Arraste seu KML ou KMZ aqui';
+  }
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
   $('demoButton').addEventListener('click', loadDemo);
