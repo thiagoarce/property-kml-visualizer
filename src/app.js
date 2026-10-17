@@ -233,17 +233,52 @@
       return u.protocol === 'https:' || u.protocol === 'hub:';
     } catch (_) { return false; }
   }
+  function isSharePointUrl(raw) {
+    try {
+      const u = new URL(raw);
+      return u.protocol === 'https:' && u.hostname === 'jwsite.sharepoint.com';
+    } catch (_) { return false; }
+  }
+  function isExternalChartUrl(raw) {
+    try {
+      const u = new URL(raw);
+      return u.hostname === 'grafico-api.onrender.com';
+    } catch (_) { return false; }
+  }
   function copySafe(dst, node) {
     if (node.nodeType === Node.TEXT_NODE) { dst.appendChild(document.createTextNode(node.nodeValue || '')); return; }
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const tag = node.tagName.toLowerCase();
     if (tag === 'img') {
       const src = node.getAttribute('src') || '';
-      if (validLink(src) && /^https:\/\/[a-z0-9.-]*jwsite\.sharepoint\.com(\/|$)/i.test(src)) {
-        const a = document.createElement('a');
-        a.href = src; a.target = '_blank'; a.rel = 'noopener noreferrer';
-        a.textContent = '[Abrir imagem no SharePoint]';
-        dst.appendChild(a);
+      if (isSharePointUrl(src)) {
+        const gallery = document.createElement('div');
+        gallery.className = 'photo-action';
+        const open = document.createElement('a');
+        open.href = src;
+        open.target = '_blank';
+        open.rel = 'noopener noreferrer';
+        open.textContent = 'Abrir foto no SharePoint';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'photo-load-button';
+        button.textContent = 'Carregar foto';
+        button.addEventListener('click', () => {
+          button.disabled = true;
+          button.textContent = 'Carregando…';
+          const img = new Image();
+          img.className = 'sharepoint-photo';
+          img.alt = node.getAttribute('alt') || 'Fotografia do SharePoint';
+          img.referrerPolicy = 'no-referrer';
+          img.loading = 'lazy';
+          img.onload = () => { button.remove(); };
+          img.onerror = () => { img.remove(); button.textContent = 'Não foi possível carregar; abrir no SharePoint'; button.disabled = false; };
+          gallery.insertBefore(img, open);
+          // A imagem só faz requisição ao SharePoint após este clique.
+          img.src = src;
+        });
+        gallery.append(button, open);
+        dst.appendChild(gallery);
       }
       return;
     }
@@ -253,7 +288,25 @@
     if (isAllowed) {
       if (tag === 'a') {
         const href = node.getAttribute('href') || '';
-        if (validLink(href)) { out.href = href; out.target = '_blank'; out.rel = 'noopener noreferrer'; }
+        if (isExternalChartUrl(href)) {
+          const warning = document.createElement('span');
+          warning.className = 'chart-external-warning';
+          warning.textContent = 'Gráfico externo ainda não disponível nesta versão local';
+          dst.appendChild(warning);
+          return;
+        }
+        if (validLink(href)) {
+          out.href = href;
+          out.target = '_blank';
+          out.rel = 'noopener noreferrer';
+          if (!isSharePointUrl(href) && /^https:/i.test(href)) {
+            out.addEventListener('click', event => {
+              if (!window.confirm('Este link abre um serviço externo e pode transmitir informações contidas na URL. Deseja continuar?')) {
+                event.preventDefault();
+              }
+            });
+          }
+        }
       }
       const classList = (node.getAttribute('class') || '').split(/\s+/).filter(x => /^[a-zA-Z_][\w-]{0,50}$/.test(x));
       if (classList.length) out.className = classList.slice(0, 8).join(' ');
