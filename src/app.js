@@ -653,13 +653,19 @@
     const detail=$('detailBody');
     detail.classList.toggle('hide-metrics',!$('showMetrics').checked);
     detail.classList.toggle('hide-empty-fields',!$('showEmptyFields').checked);
-    for (const row of detail.querySelectorAll('.description tr, .legacy-section tr')) {
+    for(const cell of detail.querySelectorAll('.detail-field,.detail-group-row')) {
+      if(cell.classList.contains('detail-group-row')) continue;
+      const value=cell.querySelector('.detail-field-value');
+      if(!value) continue;
+      const hasValue=!!value.textContent.trim()||!!value.querySelector('img,a[href],.photo-action,.local-chart');
+      cell.classList.toggle('field-is-empty',!hasValue);
+    }
+    for(const row of detail.querySelectorAll('.description tr,.legacy-section tr,.legacy-source tr')) {
       const cells=[...row.children].filter(n=>n.tagName==='TD');
       if(!cells.length)continue;
       const values=cells.filter((n,i)=>i%2===1);
       const hasContent=values.some(n=>n.textContent.trim()||n.querySelector('img,a[href],button'));
-      const isBlank=values.length && !hasContent;
-      row.classList.toggle('field-is-empty',!!isBlank);
+      row.classList.toggle('field-is-empty',!!values.length&&!hasContent);
     }
   }
   function normalizedTabLabel(label) {
@@ -668,73 +674,200 @@
     if(/^dados completos?$/i.test(short))return 'Dados completos';
     if(/^nomes e contatos$/i.test(short))return 'Contatos';
     if(/^gr[aá]ficos e proje[cç][oõ]es$/i.test(short))return 'Gráficos';
-    return short.slice(0,32)||'Detalhes';
+    return short.slice(0,40)||'Detalhes';
+  }
+  function getTabControls(root) {
+    const tabBars=[...root.querySelectorAll('.tabs,.tab-buttons,.tab-nav,.tabbar,.tab-menu,[role="tablist"],.botoes-abas')];
+    let buttons=tabBars.flatMap(bar=>[...bar.querySelectorAll('button,a')]).filter(b=>b.textContent.trim());
+    if(!buttons.length) {
+      // Alguns geradores montam a navegação sem uma div com classe "tabs".
+      buttons=[...root.querySelectorAll('button[data-kml-target],a[data-kml-target],button.tablink,button.tablinks,button.aba')];
+    }
+    return [...new Set(buttons)].filter(n=>n.textContent.trim());
+  }
+  function getLegacySections(description) {
+    const controls=getTabControls(description);
+    if(!controls.length)return [];
+    const classes='.tabcontent,.tab-content,.tab-pane,.tab-panel,.tabContent,.tabPage,.aba-content,.aba-conteudo,.conteudo-aba,.content-tab,.painel-aba,[role="tabpanel"]';
+    const known=new Set([...description.querySelectorAll(classes)]);
+    const identified=[...description.querySelectorAll('[data-kml-id]')];
+    const idMap=new Map();
+    for(const n of identified) {
+      if(!idMap.has(n.dataset.kmlId))idMap.set(n.dataset.kmlId,n);
+    }
+    const used=new Set();
+    const sections=[];
+    function targetKey(str) {
+      return normalizeField(String(str||'').replace(/^(?:tab|aba|panel|painel|content|conteudo)[-_ ]*/i,''));
+    }
+    for(let i=0;i<controls.length;i++) {
+      const button=controls[i];
+      const label=normalizedTabLabel(button.textContent);
+      const direct=button.dataset.kmlTarget||'';
+      const matches=[direct, 'tab-'+direct,'tab_'+direct,'aba-'+direct,'aba_'+direct, 'content-'+direct,
+        'tab-'+normalizeField(label).replace(/\s+/g,'-'),normalizeField(label).replace(/\s+/g,'')];
+      let panel=matches.map(name=>idMap.get(name)||null).find(n=>n&&!used.has(n))||null;
+      const candidateKey=targetKey(direct||label);
+      if(!panel && candidateKey) {
+        panel=identified.find(n=>!used.has(n)&&targetKey(n.dataset.kmlId)===candidateKey)||null;
+      }
+      if(!panel) {
+        panel=[...known].find(n=>!used.has(n) && (
+          (direct && targetKey(n.dataset.kmlId)===targetKey(direct)) ||
+          (candidateKey && targetKey(n.dataset.kmlId)===candidateKey)
+        ))||null;
+      }
+      if(!panel) {
+        const candidates=[...known].filter(n=>!used.has(n)&&!controls.some(b=>n.contains(b)));
+        if(candidates.length >= controls.length-i)panel=candidates[0];
+      }
+      if(panel && !used.has(panel)) {
+        used.add(panel);
+        sections.push({label,node:panel});
+      }
+    }
+    // Caso comum dos geradores: botões de aba válidos, mas conteúdo em blocos
+    // não identificados pelo seletor tradicional. Preserva dados sem inventar abas.
+    return sections;
+  }
+  function legacyFieldTable(table) {
+    const rows=[...table.rows].filter(tr=>tr.closest('table')===table);
+    if(!rows.length||rows.length>160)return false;
+    const cellsByRow=rows.map(row=>[...row.children].filter(c=>c.tagName==='TD'||c.tagName==='TH'));
+    if(cellsByRow.some(cells=>cells.some(cell=>cell.querySelector('table'))))return false;
+    const pairs=cellsByRow.filter(cells=>cells.length===2||cells.length===4);
+    if(!pairs.length||pairs.length<Math.ceil(rows.length*.55))return false;
+    // Tabelas com cabeçalhos são listas: congregações, projeções, históricos etc.
+    if(cellsByRow.some(cells=>cells.some(cell=>cell.tagName==='TH')))return false;
+    const textKeys=pairs.flatMap(cells=>cells.filter((_,i)=>i%2===0).map(c=>c.textContent.trim()));
+    const shortLabels=textKeys.filter(x=>x.length>0&&x.length<100).length;
+    return shortLabels>=Math.ceil(textKeys.length*.65);
+  }
+  function formatLegacyContent(content) {
+    for(const table of [...content.querySelectorAll('table')]) {
+      if(!table.isConnected||table.closest('.detail-facts'))continue;
+      if(!legacyFieldTable(table)) {
+        const shell=elText('div','table-scroll','');
+        table.classList.add('detail-data-table');
+        table.parentNode.insertBefore(shell,table);
+        shell.appendChild(table);
+        continue;
+      }
+      const grid=elText('div','detail-facts','');
+      const rows=[...table.rows].filter(tr=>tr.closest('table')===table);
+      for(const row of rows) {
+        const cells=[...row.children].filter(c=>c.tagName==='TD'||c.tagName==='TH');
+        if(cells.length===1) {
+          const heading=elText('div','detail-group-row','');
+          heading.append(...[...cells[0].childNodes].map(c=>c.cloneNode(true)));
+          grid.appendChild(heading);
+          continue;
+        }
+        if(cells.length!==2&&cells.length!==4) {
+          const original=elText('div','detail-unstructured','');
+          original.textContent=row.textContent.trim();
+          if(original.textContent)grid.appendChild(original);
+          continue;
+        }
+        for(let i=0;i<cells.length;i+=2) {
+          const label=cells[i].textContent.trim();
+          if(!label&&!cells[i+1].textContent.trim())continue;
+          const field=elText('div','detail-field','');
+          field.appendChild(elText('dt','detail-field-label',label||'Informação'));
+          const value=elText('dd','detail-field-value','');
+          value.append(...[...cells[i+1].childNodes].map(c=>c.cloneNode(true)));
+          field.appendChild(value);
+          grid.appendChild(field);
+        }
+      }
+      table.replaceWith(grid);
+    }
+    for(const button of [...content.querySelectorAll('button')]) {
+      if(button.classList.contains('photo-load-button')||button.classList.contains('legacy-reveal'))continue;
+      if(!button.closest('.detail-group-row'))continue;
+      // Controles de expansão do HTML do Google Earth não funcionam aqui;
+      // transformamos o texto em subtítulo, não em botão falso.
+      button.replaceWith(elText('span','detail-subheading',button.textContent));
+    }
+    updateDetailPreferences();
   }
   function renderDomainDetail(feature,body) {
     const overview=renderOverview(feature,getFacts(feature));
     const description=safeDescription(feature.description);
-    const buttons=[...description.querySelectorAll('.tabs button')];
-    const panels=[...description.querySelectorAll('.tabcontent, .tab-pane, .tab-panel')];
+    const sections=getLegacySections(description);
     const nav=elText('nav','property-nav','');
     nav.setAttribute('aria-label','Seções do imóvel');
     const host=elText('div','property-sections','');
     const entries=[{label:'Visão geral',root:elText('section','property-view property-main','')}];
     entries[0].root.appendChild(overview);
-    if(buttons.length && panels.length){
-      const used=new Set();
-      for(let i=0;i<Math.min(panels.length,buttons.length);i++){
-        const label=normalizedTabLabel(buttons[i].textContent);
-        const base=label;
-        let unique=base,number=2;
-        while(used.has(unique)){unique=base+' '+number++;}
-        used.add(unique);
-        const view=elText('section','property-view legacy-section','');
-        const panel=panels[i];
-        panel.style.display='block';
-        view.appendChild(panel);
-        entries.push({label:unique,root:view});
-      }
-    } else if(feature.description.trim()){
+    const seen=new Set();
+    for(const section of sections) {
+      const original=section.label;
+      let label=original,idx=2;
+      while(seen.has(label)||label==='Visão geral')label=original+' '+idx++;
+      seen.add(label);
       const view=elText('section','property-view legacy-section','');
-      view.appendChild(description);
-      entries.push({label:'Informações do KML',root:view});
+      view.dataset.section=label;
+      // Retira o painel do HTML sanitizado, preservando apenas seu conteúdo.
+      const panel=section.node;
+      view.append(...[...panel.childNodes]);
+      formatLegacyContent(view);
+      entries.push({label,root:view});
     }
-    if(buttons.length&&panels.length){
+    if(!sections.length&&feature.description.trim()) {
+      const view=elText('section','property-view legacy-section','');
+      // Remover barras de navegação legada que ficariam mortas.
+      for(const bar of description.querySelectorAll('.tabs,.tab-nav,.tab-buttons,.tabbar,[role="tablist"]'))bar.remove();
+      view.append(...[...description.childNodes]);
+      formatLegacyContent(view);
+      entries.push({label:'Informações',root:view});
+    }
+    if(feature.description.trim()) {
       const original=elText('section','property-view legacy-source','');
-      const trigger=elText('button','legacy-reveal','Carregar visualização original do KML');
+      const trigger=elText('button','legacy-reveal','Mostrar conteúdo original do KML');
       trigger.type='button';
-      const placeholder=elText('p','legacy-help',
-        'Mostra a estrutura original do Google Earth, inclusive campos e tabelas repetidos. Somente para consulta.');
-      original.append(trigger,placeholder);
+      original.append(trigger,elText('p','legacy-help',
+        'Consulta técnica dos campos originais; os dados não são enviados à internet.'));
       trigger.addEventListener('click',()=>{
         trigger.remove();
         const raw=safeDescription(feature.description);
         original.appendChild(raw);
         activateTabs(raw);
-        enhanceLocalCharts(raw);
         updateDetailPreferences();
       },{once:true});
-      entries.push({label:'Fonte original',root:original});
+      const existing=seen.has('Dados completos');
+      entries.push({label:existing?'Fonte do KML':'Dados completos',root:original});
     }
-    for(const [index,entry] of entries.entries()){
+    function activate(index) {
+      entries.forEach((entry,i)=>{
+        entry.root.hidden=i!==index;
+        const tab=nav.children[i];
+        tab.classList.toggle('is-active',i===index);
+        tab.setAttribute('aria-selected',i===index?'true':'false');
+        tab.tabIndex=i===index?0:-1;
+      });
+      body.scrollTop=0;
+    }
+    entries.forEach((entry,index)=>{
       const button=elText('button','property-nav-tab',entry.label);
       button.type='button';
-      button.setAttribute('aria-pressed',index===0?'true':'false');
-      button.classList.toggle('is-active',index===0);
-      entry.root.hidden=index!==0;
-      button.addEventListener('click',()=>{
-        for(let i=0;i<entries.length;i++){
-          entries[i].root.hidden=i!==index;
-          nav.children[i].classList.toggle('is-active',i===index);
-          nav.children[i].setAttribute('aria-pressed',i===index?'true':'false');
-        }
-        body.scrollTop=0;
+      button.setAttribute('role','tab');
+      button.setAttribute('aria-selected',index===0?'true':'false');
+      button.tabIndex=index===0?0:-1;
+      button.addEventListener('click',()=>activate(index));
+      button.addEventListener('keydown',event=>{
+        if(event.key!=='ArrowRight'&&event.key!=='ArrowLeft'&&event.key!=='Home'&&event.key!=='End')return;
+        event.preventDefault();
+        const next=event.key==='Home'?0:event.key==='End'?entries.length-1:
+          (index+(event.key==='ArrowRight'?1:-1)+entries.length)%entries.length;
+        nav.children[next].focus();
+        activate(next);
       });
       nav.appendChild(button);
       host.appendChild(entry.root);
-    }
+    });
+    nav.setAttribute('role','tablist');
     body.append(nav,host);
-    // Séries já presentes no arquivo geram um gráfico local, sem API externa.
     enhanceLocalCharts(host);
     updateDetailPreferences();
   }
