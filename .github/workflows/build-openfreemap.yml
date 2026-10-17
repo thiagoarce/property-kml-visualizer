@@ -92,6 +92,8 @@ jobs:
         run: node tests/last-session-details-browser.mjs
       - name: Validar gráficos locais, premissas e ausência de API externa
         run: node tests/graph-native-browser.mjs
+      - name: Validar integração opcional com API de gráficos original
+        run: node tests/graph-original-api-browser.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: Visualizador-KML-OpenFreeMap-file-test
