@@ -822,7 +822,7 @@
       counts.get(key).count++;
     }
     const items=[...counts.values()].sort((a,b)=>b.count-a.count);
-    $('legendCount').textContent=items.length+' estilos';
+    $('legendCount').textContent=items.length+' tipos';
     for(const item of items){
       const f=item.feature,btn=elText('button','legend-entry'+(state.iconFilter===item.key?' is-selected':''),'');
       btn.type='button';
