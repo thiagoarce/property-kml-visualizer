@@ -973,6 +973,17 @@
     if (/(?:macros?\s*\d+).*(?:rec\s|representa)/.test(paths) && features.length > 50) return 'srs';
     return 'generic';
   }
+  function setWorkspace(name) {
+    const valid=['locais','filtros','legenda'].includes(name)?name:'locais';
+    for(const button of document.querySelectorAll('.workspace-tab')){
+      const active=button.dataset.workspace===valid;
+      button.classList.toggle('is-active',active);
+      button.setAttribute('aria-selected',String(active));
+    }
+    $('workspaceLocais').hidden=valid!=='locais';
+    $('territoryPanel').hidden=valid!=='filtros';
+    $('workspaceLegend').hidden=valid!=='legenda';
+  }
   function showProfile() {
     const legend = $('mapLegend');
     legend.querySelector('.semantic-legend')?.remove();
@@ -1386,9 +1397,10 @@
     showProfile();
     $('fileName').textContent = parsed.fileName;
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
-    $('shapeCount').textContent = parsed.shapes.length ? ' · ' + parsed.shapes.length + ' linhas' : '';
+    $('currentMapName').textContent = parsed.fileName;
     $('search').value = ''; state.search = ''; state.group = '';
     renderGroups(); updateFilters(true);
+    setWorkspace('locais');
     if (!state.features.length) showToast('KML válido, mas sem marcadores Point. Alguns elementos podem ser não pontuais.');
   }
   function decodeKmlBytes(bytes) {
@@ -1490,16 +1502,23 @@
     if (!file) return;
     const isKmz = /\.kmz$/i.test(file.name);
     if (!isKmz && !/\.kml$/i.test(file.name)) {
-      showToast('Selecione um arquivo .kml ou .kmz.');
+      $('welcomeError').textContent = 'Selecione um arquivo .kml ou .kmz.';
+      $('welcomeError').hidden = false;
       return;
     }
     const maxMB = isKmz ? MAX_KMZ_MB : MAX_KML_MB;
     if (file.size > maxMB * 1024 * 1024) {
-      showToast('Arquivo maior que ' + maxMB + ' MB. Ainda não temos leitura em streaming.');
+      $('welcomeError').textContent='Arquivo maior que ' + maxMB + ' MB. Escolha um arquivo menor.';
+      $('welcomeError').hidden=false;
       return;
     }
     const tamanhoMB = (file.size / (1024 * 1024)).toFixed(1);
-    $('fileName').textContent = 'Lendo ' + file.name + ' (' + tamanhoMB + ' MB)...';
+    const previousName = state.fileName;
+    $('loadingName').textContent = file.name;
+    $('loadingScreen').hidden = false;
+    $('loadingStage').textContent = 'Lendo arquivo · ' + tamanhoMB + ' MB';
+    $('welcomeError').hidden = true;
+    $('fileName').textContent = 'Abrindo ' + file.name + '…';
     if (file.size > LARGE_KML_MB * 1024 * 1024) {
       showToast('Arquivo grande (' + tamanhoMB + ' MB). Aguarde: a leitura pode usar bastante memória.');
     }
@@ -1508,7 +1527,7 @@
       let data = await file.arrayBuffer();
       let kmzInfo = null;
       if (isKmz) {
-        $('fileName').textContent = 'Descompactando KML dentro de ' + file.name + '...';
+        $('loadingStage').textContent = 'Descompactando conteúdo do KMZ…';
         await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
         const extracted = await extractKmzKml(data);
         data = extracted.bytes;
@@ -1516,23 +1535,31 @@
       }
       let str = decodeKmlBytes(data);
       data = null; // Permite descartar o buffer antes de materializar a árvore XML.
-      $('fileName').textContent = 'Interpretando ' + file.name + '...';
+      $('loadingStage').textContent = 'Interpretando locais e informações…';
       await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
       const result = parseKml(str, file.name);
       str = null;
       if (kmzInfo) {
-        $('fileName').textContent = 'Preparando símbolos locais do KMZ...';
+        $('loadingStage').textContent = 'Preparando ícones e referências…';
         await resolveKmzIcons(result, kmzInfo.zip, kmzInfo.name);
         kmzInfo.zip = null;
       }
+      $('loadingStage').textContent = 'Montando o mapa…';
       install(result);
-      if (kmzInfo) {
-        showToast('KMZ aberto: ' + kmzInfo.name + '. Ícones do pacote carregados localmente; fotos de popup ainda não são exibidas.');
-      }
+      $('welcomeScreen').hidden = true;
+      document.body.classList.remove('is-welcome');
+      // Atualiza a área do Leaflet depois de revelar a interface.
+      requestAnimationFrame(() => map.invalidateSize());
     } catch (err) {
-      $('fileName').textContent = state.fileName || 'Nenhum arquivo aberto';
-      showToast('Não foi possível abrir: ' + (err && err.message ? err.message : String(err)));
+      $('fileName').textContent = previousName || '—';
+      const message='Não foi possível abrir o arquivo: ' + (err && err.message ? err.message : String(err));
+      $('welcomeError').textContent = message;
+      $('welcomeError').hidden = false;
+      if(!previousName){$('welcomeScreen').hidden = false;document.body.classList.add('is-welcome');}
+      else showToast(message);
       console.error('Falha na importação local do KML/KMZ:', err);
+    } finally {
+      $('loadingScreen').hidden = true;
     }
   }
   const examples = [
@@ -1553,21 +1580,14 @@
     }));
     install({ features: f, shapes: [], fileName: 'Exemplo fictício (8 BRAs)' });
   }
-  // Somente o pacote OpenFreeMap inclui JSZip; a edição legada permanece KML-only.
-  if (typeof JSZip !== 'undefined') {
-    $('upload').accept += ',.kmz,application/vnd.google-earth.kmz';
-    const dropHint = document.querySelector('#dropzone small');
-    if (dropHint) dropHint.textContent = 'ou clique para selecionar .kml ou .kmz';
-    const dropTitle = document.querySelector('#dropzone strong');
-    if (dropTitle) dropTitle.textContent = 'Arraste seu KML ou KMZ aqui';
-  }
   $('legendToggle').addEventListener('click', () => {
     const expanded = $('legendToggle').getAttribute('aria-expanded') === 'true';
     $('legendToggle').setAttribute('aria-expanded', String(!expanded));
     $('legendEntries').hidden = expanded;
     $('legendFooter').hidden = expanded;
   });
-  $('legendClear').addEventListener('click', () => { state.iconFilter = ''; state.typeFilter='';updateFilters(false); });
+  $('legendClear').addEventListener('click', () => { state.iconFilter = ''; state.typeFilter='';$('propertyFilter').value='';updateFilters(false); });
+  for(const button of document.querySelectorAll('.workspace-tab'))button.addEventListener('click',()=>setWorkspace(button.dataset.workspace));
   for(const key of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter']) {
     $(key).addEventListener('change',()=>updateFilters(true));
   }
@@ -1580,7 +1600,7 @@
   $('exportFiltered').addEventListener('click',exportAnalysisCSV);
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
-  $('demoButton').addEventListener('click', loadDemo);
+
   $('closeDetail').addEventListener('click', resetDetail);
   $('fitButton').addEventListener('click', () => {
     if (state.filtered.length) map.fitBounds(L.latLngBounds(state.filtered.map(f => f.pos)).pad(.1), { maxZoom: 12 });
@@ -1662,7 +1682,7 @@
   function toggleSidebar(show) {
     document.body.classList.toggle('sidebar-collapsed',!show);
     $('showSidebar').checked=show;
-    $('sidebarToggle').textContent=show?'Ocultar filtros':'Mostrar filtros';
+    $('sidebarToggle').textContent=show?'Ocultar painel':'Mostrar painel';
     $('sidebarToggle').setAttribute('aria-expanded',String(show));
     requestAnimationFrame(()=>map.invalidateSize());
   }
@@ -1681,11 +1701,15 @@
     clearTimeout(filterTimer); filterTimer = setTimeout(() => updateFilters(false), 180);
   });
   $('groups').addEventListener('change', () => updateFilters(true));
-  const drop = $('dropzone');
-  ['dragenter', 'dragover'].forEach(event => drop.addEventListener(event, e => { e.preventDefault(); drop.classList.add('dragging'); }));
-  ['dragleave', 'drop'].forEach(event => drop.addEventListener(event, e => { e.preventDefault(); drop.classList.remove('dragging'); }));
-  drop.addEventListener('drop', e => { readKml(e.dataTransfer.files[0]); });
-  drop.addEventListener('click', () => $('upload').click());
+  const welcomeDrop=$('welcomeDrop');
+  welcomeDrop.addEventListener('click',()=> $('upload').click());
+  ['dragenter','dragover'].forEach(type=>welcomeDrop.addEventListener(type,e=>{
+    e.preventDefault();welcomeDrop.classList.add('dragging');
+  }));
+  ['dragleave','drop'].forEach(type=>welcomeDrop.addEventListener(type,e=>{
+    e.preventDefault();welcomeDrop.classList.remove('dragging');
+  }));
+  welcomeDrop.addEventListener('drop',e=>readKml(e.dataTransfer.files[0]));
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
   $('statusTitle').textContent = 'Brasil · mapa vetorial local';
