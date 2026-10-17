@@ -68,7 +68,7 @@ try{
   await page.locator('.property-nav-tab').filter({hasText:'Gráficos'}).click();
   assert.equal(await page.locator('.graph-kpis .graph-kpi').count(),3);
   await page.locator('#forgetMap').click();
-  assert.equal(await page.locator('#sessionNote').isVisible(),false);
+  await page.locator('#sessionNote').waitFor({state:'hidden'});
   await page.reload();
   assert.equal(await page.locator('#welcomeScreen').isVisible(),true,'Esquecer volta a exigir seleção de arquivo');
   assert.deepEqual(external,[],'Nenhum dado deve ir à rede');
