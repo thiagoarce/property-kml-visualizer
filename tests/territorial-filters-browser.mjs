@@ -34,6 +34,7 @@ try {
  assert.equal(await page.locator('#stateFilter option[value="SP"]').count(),1);
  assert.equal(await page.locator('#stateFilter option[value="PB"]').count(),1);
  assert.equal(await page.locator('#macroFilter option[value="Macro 1"]').count(),1);
+ await page.locator('#advancedFilters summary').click();
  await page.locator('#stateFilter').selectOption('SP');
  await page.locator('#macroFilter').selectOption('Macro 1');
  await page.locator('#congFilter').selectOption('6+');
