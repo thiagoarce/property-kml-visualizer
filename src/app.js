@@ -533,7 +533,61 @@
     if (result.byteLength > MAX_KML_MB * 1024 * 1024) {
       throw new Error('KML extraído maior que ' + MAX_KML_MB + ' MB.');
     }
-    return { bytes: result, name: target.name, otherFiles: Object.keys(zip.files).length - 1 };
+    return { bytes: result, name: target.name, otherFiles: Object.keys(zip.files).length - 1, zip };
+  }
+  async function resolveKmzIcons(parsed, zip, kmlName) {
+    // Só extrai imagens explicitamente usadas em IconStyle, não fotos anexadas.
+    const images = new Map();
+    const urls = [];
+    const lookup = new Map(Object.keys(zip.files).map(name => [name.toLowerCase(), name]));
+    const folder = kmlName.replace(/\\/g, '/').split('/').slice(0, -1);
+    const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
+    const limitBytes = 2 * 1024 * 1024, totalLimit = 24 * 1024 * 1024;
+    let totalBytes = 0;
+    function localPath(href) {
+      if (!href || /^([a-z][a-z0-9+.-]*:|\/\/)/i.test(href)) return null;
+      const raw = href.split(/[?#]/)[0].replace(/\\/g, '/');
+      let value = raw;
+      try { value = decodeURIComponent(raw); } catch (_) { /* nome literal */ }
+      const parts = value.startsWith('/') ? [] : [...folder];
+      for (const part of value.split('/')) {
+        if (!part || part === '.') continue;
+        if (part === '..') {
+          if (!parts.length) return null;
+          parts.pop();
+        } else parts.push(part);
+      }
+      return parts.join('/');
+    }
+    for (const f of parsed.features) {
+      const key = localPath(f.iconHref);
+      if (!key) continue;
+      const ext = key.split('.').pop().toLowerCase();
+      if (!Object.hasOwn(MIME, ext)) continue;
+      const actual = lookup.get(key.toLowerCase()) || lookup.get(f.iconHref.toLowerCase());
+      if (!actual) continue;
+      if (images.has(actual)) {
+        f.iconUrl = images.get(actual);
+        continue;
+      }
+      const entry = zip.file(actual);
+      if (!entry) continue;
+      const declared = entry._data && entry._data.uncompressedSize;
+      if (Number.isFinite(declared) && (declared > limitBytes || declared + totalBytes > totalLimit)) continue;
+      try {
+        const bytes = await entry.async('uint8array');
+        if (bytes.length > limitBytes || bytes.length + totalBytes > totalLimit) continue;
+        const url = URL.createObjectURL(new Blob([bytes], { type: MIME[ext] }));
+        totalBytes += bytes.length;
+        images.set(actual, url);
+        urls.push(url);
+        f.iconUrl = url;
+      } catch (e) {
+        console.warn('Ícone local KMZ não pôde ser lido:', actual, e);
+      }
+    }
+    parsed.iconUrls = urls;
+    // Nenhum URL externo do KML é carregado por este processo.
   }
   async function readKml(file) {
     if (!file) return;
@@ -569,9 +623,14 @@
       await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
       const result = parseKml(str, file.name);
       str = null;
+      if (kmzInfo) {
+        $('fileName').textContent = 'Preparando símbolos locais do KMZ...';
+        await resolveKmzIcons(result, kmzInfo.zip, kmzInfo.name);
+        kmzInfo.zip = null;
+      }
       install(result);
       if (kmzInfo) {
-        showToast('KMZ aberto: ' + kmzInfo.name + '. Imagens e ícones internos ainda não são exibidos.');
+        showToast('KMZ aberto: ' + kmzInfo.name + '. Ícones do pacote carregados localmente; fotos de popup ainda não são exibidas.');
       }
     } catch (err) {
       $('fileName').textContent = state.fileName || 'Nenhum arquivo aberto';
