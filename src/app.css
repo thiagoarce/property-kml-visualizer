@@ -230,6 +230,7 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
 .btn-quiet:hover{background:#23546a;color:#fff}
 .basemap-control{display:flex;align-items:center;gap:8px;border:1px solid #d8e5e9;background:#fff;border-radius:9px;padding:5px 9px;color:#65808d;box-shadow:0 3px 15px #132e3e22;font-size:10px;font-weight:700}
 .basemap-control select{border:0;min-width:130px;max-width:195px;color:#1b485d;background:#fff;font-size:11px;font-weight:700;padding:5px 1px;cursor:pointer}
+.controls{z-index:700} /* Opções de visualização continuam acessíveis com painel de imóvel aberto. */
 .display-menu{position:relative;font-size:11px}
 .display-menu>summary{list-style:none;cursor:pointer;background:#fff;border:1px solid #d8e5e9;border-radius:9px;padding:11px 12px;font-weight:800;color:#1e4b5f;box-shadow:0 3px 15px #132e3e22}
 .display-menu>summary::-webkit-details-marker{display:none}
