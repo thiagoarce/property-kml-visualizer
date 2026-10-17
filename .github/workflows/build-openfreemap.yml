@@ -79,6 +79,8 @@ jobs:
         run: node tests/srs-vendas-browser.mjs
       - name: Validar painel moderno, ícones e gráfico local
         run: node tests/dashboard-browser.mjs
+      - name: Validar filtros territoriais e pesquisa sem rede
+        run: node tests/territorial-filters-browser.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: Visualizador-KML-OpenFreeMap-file-test
