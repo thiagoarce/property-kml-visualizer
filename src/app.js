@@ -984,6 +984,7 @@
       $(name).value='';
     }
     $('search').value='';
+    $('groups').value='';
     $('question').value='';
     $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
     state.typeFilter='';state.iconFilter='';
@@ -993,6 +994,9 @@
     const q=normalizeField(question);
     if(!q)return;
     const detected=[];
+    // Nova pergunta substitui os critérios da pergunta anterior, não os acumula.
+    for(const id of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'])$(id).value='';
+    $('groups').value='';state.typeFilter='';state.iconFilter='';
     // Reconhece consultas limitadas. Não envia texto à IA nem executa código do usuário.
     const uf=(q.match(/\b(?:em|no|na|de|do|estado de)\s+(ac|al|am|ap|ba|ce|df|es|go|ma|mg|ms|mt|pa|pb|pe|pi|pr|rj|rn|ro|rr|rs|sc|se|sp|to)\b/)||[])[1];
     if(uf){$('stateFilter').value=uf.toUpperCase();detected.push('UF '+uf.toUpperCase());}
