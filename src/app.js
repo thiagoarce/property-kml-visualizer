@@ -1625,24 +1625,6 @@
       $('loadingScreen').hidden = true;
     }
   }
-  const examples = [
-    ['BRA9901 — Recife/PE', -8.05, -34.88, 'Macro 4 / REC Recife', '#1682a2'],
-    ['BRA9902 — João Pessoa/PB', -7.12, -34.87, 'Macro 4 / REC João Pessoa', '#18a07e'],
-    ['BRA9903 — Fortaleza/CE', -3.73, -38.52, 'Macro 4 / REC Fortaleza', '#1682a2'],
-    ['BRA9904 — Brasília/DF', -15.79, -47.88, 'Macro 5 / REC Brasília', '#bd8a30'],
-    ['BRA9905 — Manaus/AM', -3.10, -60.02, 'Macro 5 / REC Manaus', '#bd8a30'],
-    ['BRA9906 — São Paulo/SP', -23.55, -46.63, 'Macro 2 / REC São Paulo', '#1682a2'],
-    ['BRA9907 — Porto Alegre/RS', -30.03, -51.23, 'Macro 1 / REC Porto Alegre', '#18a07e'],
-    ['BRA9908 — Belém/PA', -1.45, -48.50, 'Macro 5 / REC Belém', '#1682a2']
-  ];
-  function loadDemo() {
-    const f = examples.map((r, i) => ({
-      name: r[0], pos: [r[1], r[2]], path: r[3].split(' / '),
-      color: r[4], id: i, metadata: { BRA: r[0].split(' ')[0], Cidade: r[0].split('—')[1] },
-      description: '<h2>Exemplo inteiramente fictício</h2><p>Este registro é demonstrativo e não contém informações institucionais.</p><div class="tabs"><button onclick="openTab(event,\'local\')">Local</button><button onclick="openTab(event,\'congregacoes\')">Congregações</button></div><div class="tabcontent" id="local"><p><b>Capacidade fictícia:</b> 250 assentos</p></div><div class="tabcontent" id="congregacoes"><table><tr><th>Congregação fictícia</th><th>Assistência fictícia</th></tr><tr><td>Exemplo</td><td>180</td></tr></table></div>'
-    }));
-    install({ features: f, shapes: [], fileName: 'Exemplo fictício (8 BRAs)' });
-  }
   $('legendToggle').addEventListener('click', () => {
     const expanded = $('legendToggle').getAttribute('aria-expanded') === 'true';
     $('legendToggle').setAttribute('aria-expanded', String(!expanded));
@@ -1776,5 +1758,5 @@
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
   $('statusTitle').textContent = 'Brasil · mapa vetorial local';
-  loadDemo();
+  // A aplicação inicia vazia: apenas a importação fica visível.
 })();
