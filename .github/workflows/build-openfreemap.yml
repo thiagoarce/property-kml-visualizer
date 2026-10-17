@@ -1,0 +1,44 @@
+name: Testar HTML unico OpenFreeMap
+
+on:
+  push:
+    branches:
+      - feat/openfreemap-file-test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  empacotar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar sintaxe
+        run: python -m py_compile scripts/build.py scripts/build_openfreemap.py
+      - name: Gerar HTML unico para teste
+        run: python scripts/build_openfreemap.py
+      - name: Conferir dependencias incorporadas
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          file=Path('dist/Visualizador_KML_OpenFreeMap.html')
+          assert file.exists()
+          data=file.read_text(encoding='utf-8')
+          assert 'L.maplibreGL' in data
+          assert 'tiles.openfreemap.org/styles/liberty' in data
+          assert len(data)>200000
+          assert not re.search(r'<script[^>]+src=', data, re.I)
+          assert not re.search(r'<link[^>]+rel=["\x27]stylesheet', data, re.I)
+          print('HTML standalone compilado:',file.stat().st_size,'bytes')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Visualizador-KML-OpenFreeMap-file-test
+          path: dist/Visualizador_KML_OpenFreeMap.html
+          if-no-files-found: error
