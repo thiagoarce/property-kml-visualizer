@@ -41,6 +41,8 @@ try{
  await page.locator('#displayMenu summary').click();
  await page.locator('#showEmptyFields').check();
  assert.ok(await page.locator('.field-is-empty').first().isVisible(),'Usuário pode revelar campos vazios');
+ await page.locator('[data-workspace="legenda"]').click();
+ assert.equal(await page.locator('#mapLegend').isVisible(),true);
  await page.locator('#showLegend').uncheck();
  assert.equal(await page.locator('#mapLegend').isVisible(),false);
  await page.locator('#showMapStatus').uncheck();
