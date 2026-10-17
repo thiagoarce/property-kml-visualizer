@@ -748,7 +748,8 @@
   }
   function formatLegacyContent(content) {
     for(const table of [...content.querySelectorAll('table')]) {
-      if(!table.isConnected||table.closest('.detail-facts'))continue;
+      // Os painéis ainda não estão inseridos no DOM nesta etapa.
+      if(!table.parentNode||table.closest('.detail-facts'))continue;
       if(!legacyFieldTable(table)) {
         const shell=elText('div','table-scroll','');
         table.classList.add('detail-data-table');
