@@ -22,17 +22,18 @@ try {
   assert.equal(await page.locator('.result').count(), 8, 'Exemplo inicial deve mostrar 8 BRAs fictícios');
   assert.ok(await page.locator('.leaflet-container').count(), 'Leaflet deve inicializar');
   assert.equal(await page.locator('#osmToggle').isChecked(), false, 'OSM deve vir desligado por padrão');
-  const statePolygons = await page.locator('.leaflet-vectorMap-pane path').count();
-  console.log('Mapa offline - caminhos visíveis:', statePolygons,
-    'pane:', await page.locator('.leaflet-vectorMap-pane').count(),
-    'siglas:', await page.locator('.state-label').count(),
-    'todos os paths:', await page.locator('svg path').count());
-  assert.ok(statePolygons > 0, 'A cartografia offline deve exibir polígonos estaduais');
+  const vectorCanvases = await page.locator('.leaflet-vectorMap-pane canvas').count();
+  const stateNames = await page.locator('.state-label').count();
+  const vectorFeatures = await page.evaluate(() => BRAZIL_STATES_GEOJSON.features.length);
+  console.log('Mapa offline:', vectorFeatures, 'estados;', stateNames, 'siglas;', vectorCanvases, 'Canvas');
+  assert.equal(vectorFeatures, 27, 'A cartografia incorporada deve conter 27 UFs');
+  assert.equal(stateNames, 27, 'A cartografia offline deve mostrar as 27 siglas estaduais');
+  assert.ok(vectorCanvases > 0, 'A cartografia offline deve ter um Canvas visível');
   assert.equal(external.length, 0, 'Abrir o HTML não pode fazer requisições externas');
   // O usuário ainda pode experimentar ruas OSM, mas o bloqueio deve devolver o mapa local.
   await page.locator('#osmToggle').check();
   await page.locator('#osmToggle:not(:checked)').waitFor();
-  assert.ok(await page.locator('.leaflet-vectorMap-pane path').count() >= 27, 'Fallback continua visível após falha dos tiles');
+  assert.ok(await page.locator('.leaflet-vectorMap-pane canvas').count() > 0, 'Fallback continua visível após falha dos tiles');
 
   const sample = path.join(root, 'exemplos', 'exemplo-ficticio.kml');
   await page.locator('#upload').setInputFiles(sample);
