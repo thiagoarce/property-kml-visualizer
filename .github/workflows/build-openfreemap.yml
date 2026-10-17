@@ -20,6 +20,10 @@ jobs:
           python-version: '3.12'
       - name: Verificar sintaxe
         run: python -m py_compile scripts/build.py scripts/build_openfreemap.py
+      - name: Regressao do parser de coordenadas KML
+        run: node tests/coordinates.test.cjs
+      - name: Validar sintaxe do parser JS
+        run: node --check src/app.js
       - name: Gerar HTML unico para teste
         run: python scripts/build_openfreemap.py
       - name: Conferir dependencias incorporadas
