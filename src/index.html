@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src data: blob: https://tile.openstreetmap.org https://jwsite.sharepoint.com; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src data: blob: https://tile.openstreetmap.org https://services.arcgisonline.com https://jwsite.sharepoint.com; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Visualizador KML — Mapa de Planejamento</title>
 <link rel="stylesheet" href="../vendor/leaflet.css">
 <link rel="stylesheet" href="../vendor/MarkerCluster.css">
@@ -13,10 +13,10 @@
 <body>
 <header class="topbar">
   <div class="brand"><span class="logo" aria-hidden="true">◎</span><div><h1>Mapa de Planejamento</h1><small>Visualizador KML • Leaflet</small></div></div>
-  <div class="topactions"><span class="privacy">Dados do KML processados no navegador</span><button class="btn" id="demoButton" type="button">Reabrir exemplo</button><button class="btn btn-main" id="openButton" type="button">Abrir KML</button></div>
+  <div class="topactions"><button class="btn btn-quiet" id="sidebarToggle" type="button" aria-expanded="true" aria-controls="sidebar">Ocultar filtros</button><span class="privacy">Dados do KML processados no navegador</span><button class="btn" id="demoButton" type="button">Reabrir exemplo</button><button class="btn btn-main" id="openButton" type="button">Abrir KML</button></div>
 </header>
 <div class="layout">
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
       <div class="eyebrow">Visualizador</div>
       <h2 class="file-name" id="fileName">Exemplo fictício</h2>
@@ -61,7 +61,28 @@
   <main class="map-shell">
     <div class="map" id="map" role="application" aria-label="Mapa interativo"></div>
     <div class="map-status"><b id="statusTitle">Mapa local</b><small>Limites dos 27 estados incorporados. Sem conexão externa por padrão.</small></div>
-    <div class="controls"><button class="btn" type="button" id="fitButton">Ajustar mapa</button><label class="toggle"><input type="checkbox" id="osmToggle">Ruas online (teste)</label></div>
+    <div class="controls">
+      <button class="btn" type="button" id="fitButton">Ajustar mapa</button>
+      <label class="basemap-control">Mapa-base
+        <select id="mapStyle" aria-label="Estilo do mapa">
+          <option value="liberty">Ruas · Liberty</option>
+          <option value="positron">Claro · Positron</option>
+          <option value="bright">Contraste · Bright</option>
+          <option value="dark">Escuro · Dark</option>
+          <option value="satellite">Satélite Esri (teste)</option>
+        </select>
+      </label>
+      <label class="toggle"><input type="checkbox" id="osmToggle">Online</label>
+      <details class="display-menu" id="displayMenu"><summary>Exibição</summary>
+        <div class="display-options">
+          <label><input type="checkbox" id="showSidebar" checked> Painel de filtros</label>
+          <label><input type="checkbox" id="showLegend" checked> Legenda</label>
+          <label><input type="checkbox" id="showMapStatus" checked> Informações do mapa</label>
+          <label><input type="checkbox" id="showMetrics" checked> Indicadores do imóvel</label>
+          <label><input type="checkbox" id="showEmptyFields"> Campos sem dados</label>
+        </div>
+      </details>
+    </div>
     <section class="map-legend" id="mapLegend" aria-label="Legenda de símbolos do arquivo">
       <div class="legend-header">
         <button id="legendToggle" type="button" aria-expanded="true" aria-controls="legendEntries">▦ Legenda <span id="legendCount"></span></button>
