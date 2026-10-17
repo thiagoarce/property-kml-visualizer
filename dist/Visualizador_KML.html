@@ -864,6 +864,36 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
  .semantic-legend{padding:7px 9px}
 }
 
+/* Análise territorial: filtros combináveis e busca interpretada inteiramente no navegador. */
+.territory-panel{border-top:1px solid #dfe9ed;background:#fbfdfd}
+.territory-panel details{margin:0;border:0}
+.territory-panel summary{padding:12px 14px;color:#1b627d;font-weight:800;font-size:12px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:6px;background:#f0f7f9}
+.territory-panel summary::-webkit-details-marker{display:none}
+.territory-panel summary:before{content:'▸';color:#428da3;font-size:12px}
+.territory-panel details[open] summary:before{content:'▾'}
+.analysis-hint{font-size:10px;color:#78939e;font-weight:400;line-height:1.35}
+.territory-panel summary .analysis-hint{margin-left:auto;text-align:right}
+.analysis-body{padding:13px;max-height:min(48vh,450px);overflow:auto;border-top:1px solid #dae7ec}
+.analysis-body label{display:block;font-size:10px;font-weight:700;color:#63808f;letter-spacing:.15px;margin:0 0 5px}
+.analysis-body textarea{resize:vertical;min-height:51px;max-height:90px;width:100%;border:1px solid #cfdee5;border-radius:8px;padding:9px;font-family:inherit;font-size:11px;line-height:1.4;color:#244556;background:#fff}
+.analysis-actions{display:flex;gap:7px;margin:7px 0 9px}
+.analysis-actions button,#exportFiltered{font-family:inherit;font-size:10.5px;font-weight:700;background:#eef5f7;border:1px solid #c9dfe6;color:#216a83;border-radius:7px;padding:9px 7px;cursor:pointer;flex:1}
+.analysis-actions #askButton{background:#177d9e;color:white;border-color:#177d9e}
+.analysis-actions button:hover,#exportFiltered:hover{filter:brightness(.96)}
+#questionHint{margin-bottom:12px}
+.facet-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 8px;margin:9px 0 14px}
+.facet-grid label{margin:0;min-width:0}
+.facet-grid select,.analysis-body #groupBy{display:block;width:100%;margin-top:5px;background:#fff;border:1px solid #d1e0e5;border-radius:7px;min-height:33px;color:#284d60;font-size:11px;padding:6px 4px;overflow:hidden;text-overflow:ellipsis}
+.facet-grid select:disabled{background:#f3f5f6;color:#adbcc3}
+#exportFiltered{width:100%;margin-top:11px;background:#e8f5f0;border-color:#cce8d9;color:#1a6954}
+.analysis-result{font-size:10.5px;line-height:1.5;color:#235b6b;border-top:1px solid #d9e8ec;padding:10px 13px;background:#eaf6f8}
+.analysis-result[hidden],.analysis-groups[hidden]{display:none}
+.analysis-groups{padding:9px 13px;background:#fff;border-top:1px solid #e1e9eb;max-height:150px;overflow:auto}
+.group-title{font-size:10px;color:#637f8b;display:block;margin-bottom:6px}
+.group-stat{display:flex;gap:6px;justify-content:space-between;align-items:center;padding:5px 1px;border-bottom:1px solid #edf2f3;color:#4b6974;font-size:10.5px}
+.group-stat b{font-variant-numeric:tabular-nums;color:#1d526c}
+@media(max-width:840px){.facet-grid{grid-template-columns:1fr}.territory-panel summary .analysis-hint{display:none}}
+
 </style>
 </head>
 <body>
@@ -886,6 +916,30 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
       </div>
     </div>
     <div class="filter"><label for="search">Encontrar local</label><input id="search" type="search" autocomplete="off" placeholder="Buscar BRA, nome, cidade..."><select id="groups" aria-label="Filtrar por pasta"><option value="">Todas as pastas</option></select></div>
+    <section class="territory-panel" id="territoryPanel">
+      <details id="advancedFilters">
+        <summary>◈ Análise territorial <span class="analysis-hint">Filtrar, combinar e agrupar</span></summary>
+        <div class="analysis-body">
+          <label for="question">Pesquisar por pergunta</label>
+          <textarea id="question" rows="2" placeholder="Ex.: salões com mais de 5 congregações em SP"></textarea>
+          <div class="analysis-actions"><button type="button" id="askButton">Pesquisar no mapa</button><button type="button" id="clearAdvanced">Limpar filtros</button></div>
+          <div class="analysis-hint" id="questionHint">Busca local por critérios reconhecidos. Não usa IA nem envia o KML.</div>
+          <div class="facet-grid">
+            <label>Estado (UF)<select id="stateFilter" aria-label="Filtrar por estado"><option value="">Todas as UFs</option></select></label>
+            <label>Macro<select id="macroFilter" aria-label="Filtrar por Macro"><option value="">Todas as Macros</option></select></label>
+            <label>REC<select id="recFilter" aria-label="Filtrar por REC"><option value="">Todos os RECs</option></select></label>
+            <label>Tipo de imóvel<select id="propertyFilter" aria-label="Filtrar por tipo de imóvel"><option value="">Todos os tipos</option></select></label>
+            <label>Congregações<select id="congFilter" aria-label="Filtrar por congregações"><option value="">Todas as quantidades</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5 ou mais</option><option value="6+">Mais de 5 (6+)</option><option value="unique">Única na cidade</option><option value="unknown">Não identificadas</option></select></label>
+            <label>Situação<select id="caseFilter" aria-label="Filtrar por situação"><option value="">Todas as situações</option></select></label>
+          </div>
+          <label for="groupBy">Agrupar resultados por</label>
+          <select id="groupBy"><option value="">Sem agrupamento</option><option value="uf">Estado</option><option value="macro">Macro</option><option value="rec">REC</option><option value="type">Tipo de imóvel</option><option value="cong">Congregações (categoria)</option><option value="status">Situação</option></select>
+          <button type="button" id="exportFiltered">Exportar resultados (.csv)</button>
+        </div>
+      </details>
+      <div id="analysisResult" class="analysis-result" role="status" aria-live="polite" hidden></div>
+      <div id="groupStats" class="analysis-groups" hidden></div>
+    </section>
     <div class="result-header"><span>Locais encontrados</span><span id="foundCount">0</span></div>
     <div class="results" id="results"></div>
     <div class="sidebar-foot">Protótipo local • KML não é executado como JavaScript • <span id="shapeCount"></span> • Fotos externas só abrem após clique</div>
@@ -1763,23 +1817,303 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     }
     $('legendClear').hidden=!state.iconFilter;
   }
+
+  // Índice de análise totalmente local. A malha pública dos estados já está
+  // incorporada ao HTML; não usamos geocoding, IA ou servidores de consulta.
+  const UF_CODES = 'AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO'.split(' ');
+  function stateRegions() {
+    function ringsOf(geometry) {
+      if (!geometry) return [];
+      if (geometry.type === 'Polygon') return [geometry.coordinates];
+      if (geometry.type === 'MultiPolygon') return geometry.coordinates;
+      return [];
+    }
+    return BRAZIL_STATES_GEOJSON.features.map(f => {
+      const polygons = ringsOf(f.geometry).map(poly => poly.map(ring => {
+        const xs=ring.map(c=>c[0]), ys=ring.map(c=>c[1]);
+        return {ring,bbox:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]};
+      }));
+      const all=polygons.flat().map(p=>p.bbox);
+      return { uf:f.properties?.sigla, polygons, bbox:[
+        Math.min(...all.map(b=>b[0])),Math.min(...all.map(b=>b[1])),
+        Math.max(...all.map(b=>b[2])),Math.max(...all.map(b=>b[3]))
+      ] };
+    }).filter(x=>UF_CODES.includes(x.uf));
+  }
+  const regions=stateRegions();
+  function ringContains(ring,lon,lat) {
+    let inside=false;
+    for(let i=0,j=ring.length-1;i<ring.length;j=i++) {
+      const x=ring[i][0],y=ring[i][1],a=ring[j][0],b=ring[j][1];
+      if((y>lat)!==(b>lat) && lon<(a-x)*(lat-y)/(b-y)+x)inside=!inside;
+    }
+    return inside;
+  }
+  function stateFromCoordinates(pos) {
+    const [lat,lon]=pos;
+    for(const r of regions) {
+      const b=r.bbox;
+      if(lon<b[0]||lon>b[2]||lat<b[1]||lat>b[3])continue;
+      for(const poly of r.polygons) {
+        if(!poly.length)continue;
+        const outer=poly[0],box=outer.bbox;
+        if(lon<box[0]||lon>box[2]||lat<box[1]||lat>box[3])continue;
+        if(!ringContains(outer.ring,lon,lat))continue;
+        if(!poly.slice(1).some(h=>ringContains(h.ring,lon,lat)))return r.uf;
+      }
+    }
+    return '';
+  }
+  function extractUF(f) {
+    const source=Object.entries(f.metadata||{});
+    for(const [key,value] of source) {
+      const k=normalizeField(key);
+      if(!['uf','estado','sigla do estado','estado uf','cidade uf'].includes(k))continue;
+      const s=String(value||'').trim().toUpperCase();
+      const matched=s.match(/(?:^|\/\s*|\b)(AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO)\b/);
+      if(matched)return matched[1];
+    }
+    // UF geográfica é preferível a confundir abreviações dentro do nome do REC.
+    return stateFromCoordinates(f.pos);
+  }
+  function extractMacro(f) {
+    const found=f.path.find(x=>/^macro\s*\d+\b/i.test(x));
+    if(found)return (found.match(/macro\s*\d+/i)||[])[0]?.replace(/^macro/i,'Macro')||'';
+    for(const [k,v] of Object.entries(f.metadata||{}))if(normalizeField(k)==='macro')return String(v).trim();
+    return '';
+  }
+  function extractREC(f) {
+    const found=f.path.find(x=>/^REC[\s_-]/i.test(x));
+    if(found)return found.replace(/\s*\(\d+\)\s*$/,'').trim();
+    for(const [k,v] of Object.entries(f.metadata||{}))if(normalizeField(k)==='rec')return String(v).trim();
+    return '';
+  }
+  function exactCongregations(f) {
+    for(const [k,v] of Object.entries(f.metadata||{})){
+      if(!/^(?:qtd|quantidade|n[uú]mero|total|congrega(?:ç|c)(?:õ|o)es locais)/i.test(normalizeField(k)))continue;
+      if(!/congreg/.test(normalizeField(k)))continue;
+      if(/^\s*\d{1,3}\s*$/.test(String(v)))return Number(v);
+    }
+    const fragment=String(f.description||'').slice(0,90000);
+    // Extrai somente valores explicitamente nomeados no formulário do KML.
+    const html=fragment.match(/(?:congrega(?:ç|c)(?:õ|o)es locais|quantidade de congrega(?:ç|c)(?:õ|o)es|qtd(?:\.| de)? congrega(?:ç|c)(?:õ|o)es)\s*<\/t[dh]>\s*<t[dh][^>]*>\s*(\d{1,3})\s*</i);
+    if(html)return Number(html[1]);
+    const plain=fragment.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+    const direct=plain.match(/(?:quantidade de congrega(?:ç|c)(?:õ|o)es|congrega(?:ç|c)(?:õ|o)es locais)\s*[:=]\s*(\d{1,3})(?:\s|$)/i);
+    return direct?Number(direct[1]):null;
+  }
+  function countBucket(f,exact) {
+    if(exact!==null&&exact!==undefined) return exact>=5?'5+':String(exact);
+    const value=String(f.color||'').toLowerCase();
+    if(!/^#[0-9a-f]{6}$/.test(value))return '';
+    const rgb=[1,3,5].map(i=>parseInt(value.slice(i,i+2),16));
+    const colors=[['1',[153,0,0]],['2',[255,255,0]],['3',[0,255,0]],['4',[0,0,255]],['5+',[0,0,0]],['unique',[255,165,0]]];
+    const sorted=colors.map(([key,p])=>({key,dist:Math.hypot(...rgb.map((x,i)=>x-p[i]))})).sort((a,b)=>a.dist-b.dist);
+    return sorted[0].dist<=85?sorted[0].key:'';
+  }
+  function categoryStatus(f) {
+    if(state.profile==='vendas')return getSaleStatus(f) || 'Não informado';
+    const color=String(f.labelColor||'').toLowerCase();
+    if(/^#[0-9a-f]{6}$/.test(color)){
+      const [r,g,b]=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+      if(r>190&&g<120&&b<140)return 'Grandes Projetos';
+      if(g>150&&b>150&&r<145)return 'Pequena Reforma';
+      if(Math.abs(r-g)<35&&Math.abs(g-b)<35&&r>90&&r<205)return 'Aluguel';
+      if(g>135&&r<125&&b<150)return 'Sem caso · próprio pós-1999';
+      if(r>210&&g>210&&b>210)return 'Sem caso';
+    }
+    return getCaseStatus(f)?.label||'Não informado';
+  }
+  function enrichFeature(f) {
+    f.analysis={
+      uf:extractUF(f),macro:extractMacro(f),rec:extractREC(f),
+      exact:state.profile==='srs' ? exactCongregations(f) : null,
+      bucket:'',status:categoryStatus(f)
+    };
+    f.analysis.bucket=state.profile==='srs' ? countBucket(f,f.analysis.exact):'';
+  }
+  function appendOptions(select, values, allText) {
+    const chosen=select.value;
+    select.replaceChildren();
+    const all=document.createElement('option');all.value='';all.textContent=allText;
+    select.append(all);
+    for(const v of values){
+      if(!v)continue;
+      const option=document.createElement('option');
+      option.value=v;option.textContent=v;select.append(option);
+    }
+    if(values.includes(chosen))select.value=chosen;
+  }
+  function buildAnalysisOptions() {
+    const fields=state.features.map(f=>f.analysis||{});
+    const unique=(key)=>[...new Set(fields.map(x=>x[key]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+    appendOptions($('stateFilter'),unique('uf'),'Todas as UFs');
+    appendOptions($('macroFilter'),unique('macro'),'Todas as Macros');
+    appendOptions($('recFilter'),unique('rec'),'Todos os RECs');
+    const types=[...new Set(state.features.map(x=>x.propertyType).filter(Boolean))];
+    const typeOptions=$('propertyFilter');
+    typeOptions.replaceChildren();
+    const first=document.createElement('option');first.value='';first.textContent='Todos os tipos';typeOptions.append(first);
+    for(const key of types){const op=document.createElement('option');op.value=key;op.textContent=SEMANTIC_TYPES[key]||key;typeOptions.append(op);}
+    appendOptions($('caseFilter'),unique('status'),'Todas as situações');
+    $('congFilter').disabled=state.profile!=='srs';
+    $('analysisResult').hidden=true;
+    $('groupStats').hidden=true;
+  }
+  function clearAnalysis() {
+    for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy']){
+      $(name).value='';
+    }
+    $('search').value='';
+    $('question').value='';
+    $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
+    state.typeFilter='';state.iconFilter='';
+    updateFilters(true);
+  }
+  function interpretQuestion(question) {
+    const q=normalizeField(question);
+    if(!q)return;
+    const detected=[];
+    // Reconhece consultas limitadas. Não envia texto à IA nem executa código do usuário.
+    const uf=(q.match(/\b(?:em|no|na|de|do|estado de)\s+(ac|al|am|ap|ba|ce|df|es|go|ma|mg|ms|mt|pa|pb|pe|pi|pr|rj|rn|ro|rr|rs|sc|se|sp|to)\b/)||[])[1];
+    if(uf){$('stateFilter').value=uf.toUpperCase();detected.push('UF '+uf.toUpperCase());}
+    const macro=q.match(/\bmacro\s*(\d{1,2})\b/);
+    if(macro) {
+      const item=[...$('macroFilter').options].find(x=>normalizeField(x.value)===('macro '+macro[1]));
+      if(item){$('macroFilter').value=item.value;detected.push(item.value);}
+    }
+    let threshold='';
+    if(/\bmais de\s*5\b|\b(?:acima de|superior a)\s*5\b|\b(?:6 ou mais|6\+)\b/.test(q))threshold='6+';
+    else if(/\b(?:5 ou mais|pelo menos 5|5\+)\b/.test(q))threshold='5+';
+    else if(/\b(?:uma|1)\s+congregac/.test(q))threshold='1';
+    if(threshold&&state.profile==='srs'){
+      $('congFilter').value=threshold;
+      detected.push(threshold==='6+'?'Mais de 5 congregações (candidatos incluídos)':'5 ou mais congregações');
+    }
+    const status= q.includes('grandes projetos')?'Grandes Projetos':
+      q.includes('pequena reforma')?'Pequena Reforma':
+      q.includes('aprovado para futura venda')?'Aprovado para futura venda':'';
+    if(status&&[...$('caseFilter').options].some(o=>o.value===status)){
+      $('caseFilter').value=status;detected.push(status);
+    }
+    if(/\b(?:saloes|salao|salas de reuniao)\b/.test(q)){
+      if([...$('propertyFilter').options].some(x=>x.value==='hall')){
+        $('propertyFilter').value='hall';detected.push('Salões do Reino');
+      }
+    }
+    if(/\bterrenos?\b/.test(q)) {
+      if([...$('propertyFilter').options].some(x=>x.value==='plot')){
+        $('propertyFilter').value='plot';detected.push('Terrenos');
+      }
+    }
+    if(!detected.length) {
+      $('questionHint').textContent='Não reconheci critérios nessa frase. Use UF, Macro, congregações, status ou tipo de imóvel nos filtros.';
+      return;
+    }
+    $('search').value='';
+    $('questionHint').textContent='Interpretado: '+detected.join(' · ');
+    $('groupBy').value='';updateFilters(true);
+  }
+  function analysisMatches(f) {
+    const a=f.analysis||{};
+    if($('stateFilter').value&&a.uf!==$('stateFilter').value)return false;
+    if($('macroFilter').value&&a.macro!==$('macroFilter').value)return false;
+    if($('recFilter').value&&a.rec!==$('recFilter').value)return false;
+    if($('propertyFilter').value&&f.propertyType!==$('propertyFilter').value)return false;
+    if($('caseFilter').value&&a.status!==$('caseFilter').value)return false;
+    const count=$('congFilter').value;
+    if(count){
+      if(count==='unknown'&&a.exact===null&&a.bucket==='')return true;
+      if(count==='unknown')return false;
+      if(count==='unique'&&a.bucket!=='unique')return false;
+      if(count==='5+' && !(a.exact!==null?a.exact>=5:a.bucket==='5+'))return false;
+      if(count==='6+' && !(a.exact!==null?a.exact>=6:a.bucket==='5+'))return false;
+      if(/^[1-4]$/.test(count)&&!(a.exact!==null?a.exact===Number(count):a.bucket===count))return false;
+    }
+    return true;
+  }
+  function groupName(f,key){
+    const a=f.analysis||{};
+    if(key==='uf')return a.uf||'Não identificado';
+    if(key==='macro')return a.macro||'Não identificado';
+    if(key==='rec')return a.rec||'Não identificado';
+    if(key==='type')return SEMANTIC_TYPES[f.propertyType]||'Não identificado';
+    if(key==='cong')return a.exact!==null&&a.exact!==undefined
+      ? a.exact+' congregação(ões)' : ({'5+':'5 ou mais','unique':'Única na cidade'}[a.bucket]||a.bucket||'Não identificado');
+    if(key==='status')return a.status||'Não identificado';
+    return '';
+  }
+  function updateAnalysisView() {
+    const selected=$('congFilter').value;
+    const banner=$('analysisResult'),groups=$('groupStats');
+    const hasAnalysis=['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter']
+      .some(id=>!!$(id).value)||!!$('question').value;
+    banner.hidden=!hasAnalysis;
+    if(hasAnalysis) {
+      const count=state.filtered.length;
+      const suffix=selected==='6+'?' candidatos': ' locais';
+      let summary=count.toLocaleString('pt-BR')+suffix+' encontrados nos filtros atuais.';
+      if(selected==='6+'){
+        const uncertain=state.filtered.filter(f=>f.analysis.exact===null).length;
+        if(uncertain)summary+=' Atenção: '+uncertain.toLocaleString('pt-BR')+
+          ' têm apenas a categoria de cor “5 ou mais”; não é possível afirmar que sejam 6+ sem a quantidade exata.';
+      }else if(selected==='5+'){
+        const onlyColor=state.filtered.filter(f=>f.analysis.exact===null).length;
+        if(onlyColor)summary+=' '+onlyColor.toLocaleString('pt-BR')+' classificados pela cor do ícone (5+).';
+      }
+      banner.textContent=summary;
+    }
+    groups.replaceChildren();
+    const key=$('groupBy').value;
+    groups.hidden=!key;
+    if(!key)return;
+    const counts=new Map();
+    for(const f of state.filtered){
+      const text=groupName(f,key);
+      counts.set(text,(counts.get(text)||0)+1);
+    }
+    const title=elText('strong','group-title','Agrupamento — '+counts.size+' categorias');
+    groups.append(title);
+    for(const [name,count] of [...counts].sort((a,b)=>b[1]-a[1]).slice(0,25)){
+      const row=elText('div','group-stat','');
+      row.append(elText('span','',name),elText('b','',count.toLocaleString('pt-BR')));
+      groups.append(row);
+    }
+  }
+  function exportAnalysisCSV() {
+    if(!state.filtered.length){showToast('Nenhum resultado para exportar.');return;}
+    const heading=['BRA / Nome','Tipo','UF','Macro','REC','Congregações exatas','Categoria por cor','Situação','Latitude','Longitude'];
+    const body=[heading,...state.filtered.map(f=>[
+      f.name,SEMANTIC_TYPES[f.propertyType]||'',f.analysis.uf,f.analysis.macro,f.analysis.rec,
+      f.analysis.exact===null?'':String(f.analysis.exact),f.analysis.bucket,f.analysis.status,
+      f.pos[0].toFixed(6),f.pos[1].toFixed(6)
+    ])];
+    const csv='\uFEFF'+body.map(row=>row.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='Mapa_Filtrado_'+Date.now()+'.csv';
+    document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
   function updateFilters(fit = false) {
-    state.group = $('groups').value;
-    state.search = $('search').value.trim().toLocaleLowerCase('pt-BR');
-    state.filtered = state.features.filter(f => {
-      const group = f.path.join(' / ');
-      if (state.group && group !== state.group) return false;
-      if (state.iconFilter && iconKey(f) !== state.iconFilter) return false;
-      if (state.typeFilter && f.propertyType !== state.typeFilter) return false;
-      if (!state.search) return true;
-      const hay = (f.name + ' ' + group + ' ' + Object.values(f.metadata).join(' ')).toLocaleLowerCase('pt-BR');
+    state.group=$('groups').value;
+    state.search=$('search').value.trim().toLocaleLowerCase('pt-BR');
+    state.filtered=state.features.filter(f=>{
+      const group=f.path.join(' / ');
+      if(state.group&&group!==state.group)return false;
+      if(state.iconFilter&&iconKey(f)!==state.iconFilter)return false;
+      if(state.typeFilter&&f.propertyType!==state.typeFilter)return false;
+      if(!analysisMatches(f))return false;
+      if(!state.search)return true;
+      const hay=(f.name+' '+group+' '+Object.values(f.metadata).join(' ')+' '+
+        (f.analysis?.uf||'')+' '+(f.analysis?.rec||'')).toLocaleLowerCase('pt-BR');
       return hay.includes(state.search);
     });
-    $('filteredCount').textContent = state.filtered.length.toLocaleString('pt-BR');
-    $('foundCount').textContent = state.filtered.length.toLocaleString('pt-BR');
+    $('filteredCount').textContent=state.filtered.length.toLocaleString('pt-BR');
+    $('foundCount').textContent=state.filtered.length.toLocaleString('pt-BR');
     renderList();
     renderMap(fit);
     renderLegend();
+    updateAnalysisView();
   }
   function install(parsed) {
     resetDetail();
@@ -1791,6 +2125,11 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     state.fileName = parsed.fileName;
     state.profile = mapProfile(parsed.fileName, parsed.features);
     if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
+    for(const f of state.features)enrichFeature(f);
+    for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'])$(name).value='';
+    $('question').value='';
+    $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
+    buildAnalysisOptions();
     showProfile();
     $('fileName').textContent = parsed.fileName;
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
@@ -1976,6 +2315,16 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     $('legendFooter').hidden = expanded;
   });
   $('legendClear').addEventListener('click', () => { state.iconFilter = ''; state.typeFilter='';updateFilters(false); });
+  for(const key of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter']) {
+    $(key).addEventListener('change',()=>updateFilters(true));
+  }
+  $('groupBy').addEventListener('change',updateAnalysisView);
+  $('askButton').addEventListener('click',()=>interpretQuestion($('question').value));
+  $('question').addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();interpretQuestion($('question').value);}
+  });
+  $('clearAdvanced').addEventListener('click',clearAnalysis);
+  $('exportFiltered').addEventListener('click',exportAnalysisCSV);
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
   $('demoButton').addEventListener('click', loadDemo);
