@@ -21,7 +21,14 @@ try {
   await page.locator('#totalCount').filter({ hasText: '8' }).waitFor();
   assert.equal(await page.locator('.result').count(), 8, 'Exemplo inicial deve mostrar 8 BRAs fictícios');
   assert.ok(await page.locator('.leaflet-container').count(), 'Leaflet deve inicializar');
-  await page.locator('#osmToggle').uncheck();
+  assert.equal(await page.locator('#osmToggle').isChecked(), false, 'OSM deve vir desligado por padrão');
+  const statePolygons = await page.locator('.leaflet-vectorMap-pane path').count();
+  assert.ok(statePolygons >= 27, 'A cartografia offline deve exibir as 27 unidades federativas');
+  assert.equal(external.length, 0, 'Abrir o HTML não pode fazer requisições externas');
+  // O usuário ainda pode experimentar ruas OSM, mas o bloqueio deve devolver o mapa local.
+  await page.locator('#osmToggle').check();
+  await page.locator('#osmToggle:not(:checked)').waitFor();
+  assert.ok(await page.locator('.leaflet-vectorMap-pane path').count() >= 27, 'Fallback continua visível após falha dos tiles');
 
   const sample = path.join(root, 'exemplos', 'exemplo-ficticio.kml');
   await page.locator('#upload').setInputFiles(sample);
