@@ -255,3 +255,30 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
  .controls .btn{display:none}
  .display-options{min-width:178px}
 }
+
+
+/* 2026-10: abas sem HTML legado aparente; campos como fichas, tabelas preservadas para listas */
+.property-nav{gap:7px;flex-wrap:nowrap;padding-top:13px;padding-bottom:13px;background:#fff;scroll-padding-inline:12px}
+.property-nav-tab{font-size:11px;font-weight:750;padding:10px 13px;border-radius:9px;border:1px solid #e2eaed;color:#456778;background:#f3f7f9}
+.property-nav-tab.is-active{background:#147f9d;color:#fff;border-color:#147f9d;box-shadow:0 2px 6px #177d9e24}
+.property-view.legacy-section{padding-top:15px}
+.legacy-section>.detail-facts,.legacy-section .detail-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:2px 0 18px}
+.detail-field{min-width:0;display:flex;flex-direction:column;gap:7px;background:#f6f9fa;border:1px solid #e1eaed;border-radius:11px;padding:12px 13px;box-shadow:0 1px 2px #20405205}
+.detail-field-label{font-size:10px;color:#627e8a;font-weight:650;letter-spacing:.1px;line-height:1.35;overflow-wrap:anywhere}
+.detail-field-value{font-size:12px;line-height:1.5;color:#153e52;font-weight:700;overflow-wrap:anywhere;margin:0}
+.detail-field-value a{font-weight:750;color:#147a99}
+.detail-field-value .photo-action{font-weight:400}
+.detail-group-row{grid-column:1/-1;color:#1e536d;font-size:12px;font-weight:800;line-height:1.4;padding:14px 2px 7px;margin-top:3px;border-bottom:1px solid #dce8ec}
+.detail-subheading{display:inline-block;color:#1c7894;font-size:11px;font-weight:750}
+.detail-unstructured{grid-column:1/-1;color:#496e7d;font-size:11px}
+.legacy-section .table-scroll{width:100%;max-width:100%;overflow-x:auto;border:1px solid #dde9ee;border-radius:10px;margin:8px 0 17px;background:#fff}
+.legacy-section .detail-data-table{width:100%;border-collapse:collapse;table-layout:auto;margin:0;font-size:11px;line-height:1.45}
+.legacy-section .detail-data-table th{background:#eaf3f6;color:#245a70;font-weight:800;text-align:left;white-space:normal;padding:11px 12px;border-bottom:1px solid #d4e4e9}
+.legacy-section .detail-data-table td{color:#365c6e;padding:10px 12px;border-bottom:1px solid #e7eef1;vertical-align:top}
+.legacy-section .detail-data-table tr:nth-child(even) td{background:#f7fbfc}
+.legacy-section .detail-data-table tr:last-child td{border-bottom:none}
+.legacy-section .detail-data-table tr:hover td{background:#ecf6f9}
+.hide-empty-fields .detail-field.field-is-empty{display:none!important}
+.property-view[hidden]{display:none!important}
+.legacy-section>.description>.tabs,.legacy-section>.tabs{display:none!important}
+@media(max-width:700px){.legacy-section>.detail-facts,.legacy-section .detail-facts{grid-template-columns:1fr}.detail-field{padding:10px 12px}.detail-group-row{margin-top:0}}
