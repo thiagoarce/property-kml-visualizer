@@ -357,14 +357,21 @@
           img.className = 'sharepoint-photo';
           img.alt = node.getAttribute('alt') || 'Fotografia do SharePoint';
           img.referrerPolicy = 'no-referrer';
-          img.loading = 'lazy';
-          img.onload = () => { button.remove(); };
-          img.onerror = () => { img.remove(); button.textContent = 'Não foi possível carregar; abrir no SharePoint'; button.disabled = false; };
+          img.loading = 'eager';
+          img.onload = () => { button.remove(); gallery.classList.add('is-loaded'); };
+          img.onerror = () => {
+            img.remove();button.textContent='Tentar novamente';button.disabled=false;
+            gallery.classList.add('photo-failed');
+            const note=gallery.querySelector('.photo-error')||elText('span','photo-error','');
+            note.textContent='Prévia indisponível neste navegador. Use o link do SharePoint para visualizar após o login.';
+            if(!note.parentNode)gallery.append(note);
+          };
           gallery.insertBefore(img, open);
           // A imagem só faz requisição ao SharePoint após este clique.
           img.src = src;
         });
-        gallery.append(button, open);
+        const photoName=elText('span','photo-caption',src.split('/').pop()?.split('?')[0]||'Imagem do SharePoint');
+        gallery.append(photoName,button,open);
         dst.appendChild(gallery);
       }
       return;
@@ -758,19 +765,31 @@
         continue;
       }
       const grid=elText('div','detail-facts','');
+      let destination=grid;
       const rows=[...table.rows].filter(tr=>tr.closest('table')===table);
       for(const row of rows) {
         const cells=[...row.children].filter(c=>c.tagName==='TD'||c.tagName==='TH');
         if(cells.length===1) {
-          const heading=elText('div','detail-group-row','');
-          heading.append(...[...cells[0].childNodes].map(c=>c.cloneNode(true)));
-          grid.appendChild(heading);
+          const label=cells[0].textContent.trim();
+          const isAccordion=/^detalhes (?:do|da|de|sobre)\b/i.test(label);
+          if(isAccordion){
+            const accordion=document.createElement('details');
+            accordion.className='detail-accordion';
+            const summary=elText('summary','',label.replace(/^▸\s*/,''));
+            const inner=elText('div','detail-accordion-body detail-facts','');
+            accordion.append(summary,inner);
+            grid.append(accordion);
+            destination=inner;
+          }else{
+            destination=grid;
+            grid.append(elText('div','detail-group-row',label));
+          }
           continue;
         }
         if(cells.length!==2&&cells.length!==4) {
           const original=elText('div','detail-unstructured','');
           original.textContent=row.textContent.trim();
-          if(original.textContent)grid.appendChild(original);
+          if(original.textContent)destination.appendChild(original);
           continue;
         }
         for(let i=0;i<cells.length;i+=2) {
@@ -781,7 +800,7 @@
           const value=elText('dd','detail-field-value','');
           value.append(...[...cells[i+1].childNodes].map(c=>c.cloneNode(true)));
           field.appendChild(value);
-          grid.appendChild(field);
+          destination.appendChild(field);
         }
       }
       table.replaceWith(grid);
@@ -794,6 +813,56 @@
       button.replaceWith(elText('span','detail-subheading',button.textContent));
     }
     updateDetailPreferences();
+  }
+  function enhanceMediaSections(view,label) {
+    if(/fotos|imagens|galeria/i.test(label)){
+      const photos=[...view.querySelectorAll('.photo-action')];
+      if(photos.length){
+        const header=elText('div','gallery-toolbar','');
+        header.appendChild(elText('strong','',photos.length+' foto(s) vinculada(s)'));
+        const all=elText('button','gallery-load','Carregar prévias');
+        all.type='button';
+        all.addEventListener('click',()=>{
+          const buttons=photos.map(p=>p.querySelector('.photo-load-button')).filter(Boolean);
+          buttons.forEach((b,i)=>setTimeout(()=>{if(b.isConnected&&!b.disabled)b.click()},i*250));
+          all.remove();
+        });
+        header.append(all);
+        const gallery=elText('div','photo-gallery','');
+        for(const p of photos)gallery.appendChild(p);
+        view.prepend(header,gallery);
+      }
+    }
+    if(/gr[aá]fic|proje/i.test(label)){
+      for(const button of [...view.querySelectorAll('button')]){
+        if(/^(ajustar gr[aá]ficos|padr[aã]o|recente|detalhada|aplicar a todas|c[aá]lculos detalhados)$/i.test(button.textContent.trim()))
+          button.remove();
+      }
+      for(const node of [...view.querySelectorAll('*')]){
+        if(node.children.length===0&&/carregando gr[aá]fico/i.test(node.textContent))
+          node.textContent='';
+      }
+      const warnings=[...view.querySelectorAll('.chart-external-warning')];
+      if(warnings.length){
+        const notice=elText('div','graph-notice',
+          'Os gráficos completos exigem séries históricas que ainda não estão incluídas neste KML. Nenhum dado foi enviado a serviços externos.');
+        warnings[0].replaceWith(notice);
+        warnings.slice(1).forEach(n=>n.remove());
+      }
+      const content=view.textContent.replace(/\s+/g,' ');
+      const keys=['Capacidade primária','Assistência base média','Necessários hoje (90%)','Com até 20% remoto'];
+      const metrics=elText('div','graph-kpis','');
+      for(const key of keys){
+        const pattern=new RegExp(key.replace(/[()]/g,'\\$&')+'\\s*[:–-]?\\s*(\\d{1,6})','i');
+        const value=content.match(pattern)?.[1];
+        if(value){
+          const card=elText('div','graph-kpi','');
+          card.append(elText('small','',key),elText('strong','',Number(value).toLocaleString('pt-BR')));
+          metrics.append(card);
+        }
+      }
+      if(metrics.children.length)view.prepend(metrics);
+    }
   }
   function renderDomainDetail(feature,body) {
     const overview=renderOverview(feature,getFacts(feature));
@@ -816,6 +885,7 @@
       const panel=section.node;
       view.append(...[...panel.childNodes]);
       formatLegacyContent(view);
+      enhanceMediaSections(view,label);
       entries.push({label,root:view});
     }
     if(!sections.length&&feature.description.trim()) {
