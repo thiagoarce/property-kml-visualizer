@@ -116,18 +116,14 @@ def main():
 
     page = must_replace(
         page,
-        "https://tile.openstreetmap.org https://jwsite.sharepoint.com; connect-src 'none'; font-src 'none';",
-        "https://tiles.openfreemap.org https://assets.openfreemap.com https://jwsite.sharepoint.com; "
+        "https://tile.openstreetmap.org https://services.arcgisonline.com https://jwsite.sharepoint.com; connect-src 'none'; font-src 'none';",
+        "https://tiles.openfreemap.org https://assets.openfreemap.com https://services.arcgisonline.com https://jwsite.sharepoint.com; "
         "connect-src https://tiles.openfreemap.org https://assets.openfreemap.com; "
         "worker-src blob:; child-src blob:; font-src 'none';"
     )
-    page = must_replace(page, "Ruas online (teste)", "OpenFreeMap (teste)")
-    page = must_replace(page, "'Ruas online · experimental'", "'OpenFreeMap · ruas vetoriais'")
-    page = must_replace(
-        page,
-        "'O OpenStreetMap pode bloquear arquivos abertos por duplo clique. Nenhum dado do KML é enviado.'",
-        "'Carregando ruas vetoriais do OpenFreeMap. Dados do KML permanecem locais.'"
-    )
+    # O seletor novo utiliza os nomes reais dos estilos; não substitui mais
+    # textos fixos do antigo checkbox "Ruas online (teste)".
+    # Os avisos de privacidade agora dependem do modo escolhido.
 
     if re.search(r'<(?:script|link)\b[^>]+(?:src|href)\s*=\s*["\']https?://', page, re.I):
         raise RuntimeError("O HTML final contém referência a JS/CSS remoto: abortando.")
