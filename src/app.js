@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false, iconFilter: '', iconUrls: [] };
+  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false, iconFilter: '', iconUrls: [], profile: 'generic' };
   const ALLOWED_TAGS = new Set('a b blockquote br button caption code dd div dl dt em h1 h2 h3 h4 h5 h6 hr i li ol p pre small span strong sub sup table tbody td th thead tr u ul'.split(' '));
   const BLOCKED_TAGS = new Set('script style iframe svg object embed form input select textarea link meta video audio canvas picture source'.split(' '));
   // Teto preventivo, nao uma limitacao do KML ou do OpenFreeMap.
@@ -413,6 +413,54 @@
       map.fitBounds(bounds.pad(.1), { maxZoom: 12, animate: false });
     }
   }
+  function mapProfile(name, features) {
+    const title = String(name || '').toLocaleLowerCase('pt-BR');
+    if (/\bvendas?\b|im[oó]ve(?:l|is)\s+(?:à|a)\s+venda/.test(title)) return 'vendas';
+    if (/^srs?(?:\.kml|\.kmz)?$|sal[oõ]es\s+do\s+reino/.test(title)) return 'srs';
+    const paths = features.slice(0, Math.min(features.length, 40)).map(f => f.path.join(' / ').toLocaleLowerCase('pt-BR')).join(' ');
+    if (/im[oó]ve(?:l|is)\s+(?:à|a)\s+venda/.test(paths)) return 'vendas';
+    if (/(?:macros?\s*\d+).*(?:rec\s|representa)/.test(paths) && features.length > 50) return 'srs';
+    return 'generic';
+  }
+  function showProfile() {
+    const legend = $('mapLegend');
+    let blurb = legend.querySelector('.semantic-legend');
+    if (blurb) blurb.remove();
+    document.body.dataset.mapProfile = state.profile;
+    if (state.profile === 'generic') return;
+    blurb = document.createElement('div');
+    blurb.className = 'semantic-legend';
+    const strong = document.createElement('strong');
+    strong.textContent = state.profile === 'srs' ? 'Como interpretar o mapa SRs' : 'Mapa de imóveis à venda';
+    blurb.appendChild(strong);
+    const p = document.createElement('p');
+    p.textContent = state.profile === 'srs'
+      ? 'Cor do marcador = quantidade de congregações. Cor do rótulo = condição do caso. Não confunda as duas informações.'
+      : 'Categorias de venda e situação do prédio são informadas pelas pastas e pelos dados de cada imóvel.';
+    blurb.appendChild(p);
+    if (state.profile === 'srs') {
+      const labels = [
+        ['#c43838','Grandes Projetos'],
+        ['#23a7c5','Pequena Reforma'],
+        ['#8c989e','Aluguel']
+      ];
+      for (const [color,label] of labels) {
+        const row = document.createElement('div');
+        row.className = 'meaning-row';
+        const dot = document.createElement('span');
+        dot.style.backgroundColor = color;
+        dot.className = 'meaning-swatch';
+        const text = document.createElement('span');
+        text.textContent = label;
+        row.append(dot,text);
+        blurb.appendChild(row);
+      }
+      const note = document.createElement('small');
+      note.textContent = 'Branco/verde: condições sem caso prioritário. A associação exata entre cores dos ícones, quantidade e formatos ainda requer a tabela do gerador VBA.';
+      blurb.appendChild(note);
+    }
+    legend.insertBefore(blurb, $('legendEntries'));
+  }
   function renderLegend() {
     const box = $('legendEntries');
     if (!box) return;
@@ -449,7 +497,11 @@
       const styleLabel = f.styleName && !/^(?:normal|highlight|default|s\d+|style\d*|icon[-_]?\d+|msn_.*)$/i.test(f.styleName)
         ? f.styleName.replace(/[_-]+/g, ' ').slice(0, 55)
         : '';
-      name.textContent = styleLabel || (colorName(f.color) + ' · ' + (kindNames[f.iconKind] || 'círculo'));
+      const pathText = f.path.join(' / ');
+      const salesStatus = f.path.find(x => /^(?:SR (?:em uso|vazio)|(?:im[oó]vel|propriedade) (?:à|a) venda|(?:resid[eê]ncia|terreno))$/i.test(x.trim()));
+      name.textContent = state.profile === 'vendas' && salesStatus
+        ? salesStatus
+        : (styleLabel || (colorName(f.color) + ' · ' + (kindNames[f.iconKind] || 'círculo')));
       const count = document.createElement('span');
       count.className = 'legend-item-count';
       count.textContent = item.count.toLocaleString('pt-BR');
@@ -487,6 +539,8 @@
     state.features = parsed.features;
     state.shapes = parsed.shapes;
     state.fileName = parsed.fileName;
+    state.profile = mapProfile(parsed.fileName, parsed.features);
+    showProfile();
     $('fileName').textContent = parsed.fileName;
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
     $('shapeCount').textContent = parsed.shapes.length ? ' · ' + parsed.shapes.length + ' linhas' : '';
