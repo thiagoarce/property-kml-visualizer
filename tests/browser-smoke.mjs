@@ -18,8 +18,9 @@ page.on('request', request => {
 await page.route('https://tile.openstreetmap.org/**', route => route.abort()); // Não consumir tiles em teste.
 try {
   await page.goto(url);
-  await page.locator('#totalCount').filter({ hasText: '8' }).waitFor();
-  assert.equal(await page.locator('.result').count(), 8, 'Exemplo inicial deve mostrar 8 BRAs fictícios');
+  await page.locator('#welcomeScreen').waitFor();
+  assert.equal(await page.locator('.result').count(), 0, 'Nenhum marcador antes da importação');
+  assert.equal(await page.locator('.layout').isVisible(), false, 'A primeira tela é somente para importar');
   assert.ok(await page.locator('.leaflet-container').count(), 'Leaflet deve inicializar');
   assert.equal(await page.locator('#osmToggle').isChecked(), false, 'OSM deve vir desligado por padrão');
   const vectorCanvases = await page.locator('.leaflet-vectorMap-pane canvas').count();
@@ -30,16 +31,15 @@ try {
   assert.equal(stateNames, 27, 'A cartografia offline deve mostrar as 27 siglas estaduais');
   assert.ok(vectorCanvases > 0, 'A cartografia offline deve ter um Canvas visível');
   assert.equal(external.length, 0, 'Abrir o HTML não pode fazer requisições externas');
-  // O usuário ainda pode experimentar ruas OSM, mas o bloqueio deve devolver o mapa local.
-  // O tile bloqueado volta tão rápido ao modo offline que Playwright.check()
-  // falharia por esperar que o checkbox permanecesse marcado.
-  await page.locator('#osmToggle').click();
-  await page.locator('#osmToggle:not(:checked)').waitFor();
-  assert.ok(await page.locator('.leaflet-vectorMap-pane canvas').count() > 0, 'Fallback continua visível após falha dos tiles');
-
   const sample = path.join(root, 'exemplos', 'exemplo-ficticio.kml');
   await page.locator('#upload').setInputFiles(sample);
   await page.locator('#totalCount').filter({ hasText: '4' }).waitFor();
+  assert.equal(await page.locator('#welcomeScreen').isVisible(), false, 'Importação abre o mapa');
+
+  // O usuário ainda pode experimentar ruas OSM, mas o bloqueio deve devolver o mapa local.
+  await page.locator('#osmToggle').click();
+  await page.locator('#osmToggle:not(:checked)').waitFor();
+  assert.ok(await page.locator('.leaflet-vectorMap-pane canvas').count() > 0, 'Fallback continua visível após falha dos tiles');
   assert.equal(await page.locator('.result').count(), 4, 'KML deve fornecer quatro marcadores');
   assert.equal(await page.locator('#groupCount').innerText(), '3', 'Grupos com marcadores devem ser interpretados');
 
