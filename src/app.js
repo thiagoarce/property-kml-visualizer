@@ -8,6 +8,7 @@
   // Teto preventivo, nao uma limitacao do KML ou do OpenFreeMap.
   // KMLs de SRs podem passar de 80 MB; acima de centenas de MB o DOMParser pode consumir muita RAM.
   const MAX_KML_MB = 512;
+  const MAX_KMZ_MB = 512;
   const LARGE_KML_MB = 80;
   let filterTimer = null;
   const map = L.map('map', { zoomControl: false, preferCanvas: true, minZoom: 2, maxZoom: 19, worldCopyJump: true }).setView([-14.5, -52], 4);
@@ -352,38 +353,89 @@
     renderGroups(); updateFilters(true);
     if (!state.features.length) showToast('KML válido, mas sem marcadores Point. Alguns elementos podem ser não pontuais.');
   }
+  function decodeKmlBytes(bytes) {
+    let str;
+    try { str = new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+    catch (_) { str = new TextDecoder('windows-1252').decode(bytes); }
+    const declared = (str.slice(0, 250).match(/encoding\s*=\s*["']([^"']+)/i) || [])[1] || '';
+    if (/^(iso-8859-1|windows-1252)$/i.test(declared)) str = new TextDecoder('windows-1252').decode(bytes);
+    return str;
+  }
+  async function extractKmzKml(bytes) {
+    // A biblioteca ZIP é embutida somente no HTML OpenFreeMap compilado.
+    // Não há descompactação em servidor nem leitura automática de imagens/anexos.
+    if (typeof JSZip === 'undefined') {
+      throw new Error('Esta edição não inclui suporte a KMZ. Abra a versão OpenFreeMap.');
+    }
+    const zip = await JSZip.loadAsync(bytes, { checkCRC32: false, createFolders: false });
+    const candidates = Object.values(zip.files)
+      .filter(entry => !entry.dir && /\.kml$/i.test(entry.name) &&
+        !/(^|\/)__MACOSX\//i.test(entry.name));
+    if (!candidates.length) throw new Error('KMZ inválido: nenhum arquivo .kml encontrado no pacote.');
+    // Padrão KMZ: doc.kml na raiz. Algumas ferramentas usam outras pastas/nomes.
+    candidates.sort((a, b) => {
+      function priority(entry) {
+        const name = entry.name.replace(/\\/g, '/');
+        return (name.toLowerCase() === 'doc.kml' ? 0 : /(^|\/)doc\.kml$/i.test(name) ? 1 : 2) * 10000 +
+          name.split('/').length * 100 + name.length;
+      }
+      return priority(a) - priority(b);
+    });
+    const target = candidates[0];
+    // Evita descompactar inadvertidamente outros recursos do KMZ (imagens etc.).
+    // UncompressedSize vem do diretório central ZIP: checagem preventiva, não garantia absoluta.
+    const expanded = target._data && target._data.uncompressedSize;
+    if (Number.isFinite(expanded) && expanded > MAX_KML_MB * 1024 * 1024) {
+      throw new Error('KML interno maior que ' + MAX_KML_MB + ' MB. Leitura incremental ainda não implementada.');
+    }
+    const result = await target.async('uint8array');
+    if (result.byteLength > MAX_KML_MB * 1024 * 1024) {
+      throw new Error('KML extraído maior que ' + MAX_KML_MB + ' MB.');
+    }
+    return { bytes: result, name: target.name, otherFiles: Object.keys(zip.files).length - 1 };
+  }
   async function readKml(file) {
     if (!file) return;
-    if (!/\.kml$/i.test(file.name)) { showToast('Selecione um arquivo .kml. KMZ ainda não é suportado.'); return; }
-    if (file.size > MAX_KML_MB * 1024 * 1024) {
-      showToast('Arquivo acima de ' + MAX_KML_MB + ' MB. Essa versao ainda nao tem leitura em streaming.');
+    const isKmz = /\.kmz$/i.test(file.name);
+    if (!isKmz && !/\.kml$/i.test(file.name)) {
+      showToast('Selecione um arquivo .kml ou .kmz.');
+      return;
+    }
+    const maxMB = isKmz ? MAX_KMZ_MB : MAX_KML_MB;
+    if (file.size > maxMB * 1024 * 1024) {
+      showToast('Arquivo maior que ' + maxMB + ' MB. Ainda não temos leitura em streaming.');
       return;
     }
     const tamanhoMB = (file.size / (1024 * 1024)).toFixed(1);
     $('fileName').textContent = 'Lendo ' + file.name + ' (' + tamanhoMB + ' MB)...';
     if (file.size > LARGE_KML_MB * 1024 * 1024) {
-      showToast('KML grande (' + tamanhoMB + ' MB). Aguarde: a leitura pode levar tempo e usar bastante memoria.');
+      showToast('Arquivo grande (' + tamanhoMB + ' MB). Aguarde: a leitura pode usar bastante memória.');
     }
-    // Deixa o aviso e o titulo aparecerem antes do processamento sincrono do XML.
     await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
     try {
-      // Conserva o fallback de codificacao dos KMLs legados.
-      // Nao faz upload: File.arrayBuffer() le o arquivo do proprio computador.
       let data = await file.arrayBuffer();
-      let str;
-      try { str = new TextDecoder('utf-8', { fatal: true }).decode(data); }
-      catch (_) { str = new TextDecoder('windows-1252').decode(data); }
-      const declared = (str.slice(0, 250).match(/encoding\s*=\s*["']([^"']+)/i) || [])[1] || '';
-      if (/^(iso-8859-1|windows-1252)$/i.test(declared)) str = new TextDecoder('windows-1252').decode(data);
-      data = null; // Permite liberar o buffer binario antes de materializar a arvore XML.
+      let kmzInfo = null;
+      if (isKmz) {
+        $('fileName').textContent = 'Descompactando KML dentro de ' + file.name + '...';
+        await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+        const extracted = await extractKmzKml(data);
+        data = extracted.bytes;
+        kmzInfo = extracted;
+      }
+      let str = decodeKmlBytes(data);
+      data = null; // Permite descartar o buffer antes de materializar a árvore XML.
       $('fileName').textContent = 'Interpretando ' + file.name + '...';
       await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
       const result = parseKml(str, file.name);
       str = null;
       install(result);
+      if (kmzInfo) {
+        showToast('KMZ aberto: ' + kmzInfo.name + '. Imagens e ícones internos ainda não são exibidos.');
+      }
     } catch (err) {
       $('fileName').textContent = state.fileName || 'Nenhum arquivo aberto';
       showToast('Não foi possível abrir: ' + (err && err.message ? err.message : String(err)));
+      console.error('Falha na importação local do KML/KMZ:', err);
     }
   }
   const examples = [
