@@ -2,22 +2,60 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: true };
+  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false };
   const ALLOWED_TAGS = new Set('a b blockquote br button caption code dd div dl dt em h1 h2 h3 h4 h5 h6 hr i li ol p pre small span strong sub sup table tbody td th thead tr u ul'.split(' '));
   const BLOCKED_TAGS = new Set('script style iframe svg object embed form input select textarea link meta video audio canvas picture source'.split(' '));
   const MAX_KML_MB = 80;
-  let tileErrors = 0;
   let filterTimer = null;
   const map = L.map('map', { zoomControl: false, preferCanvas: true, minZoom: 2, maxZoom: 19, worldCopyJump: true }).setView([-14.5, -52], 4);
+  // Cartografia local SEM solicitações de rede: geometria pública dos 27 estados.
+  // A camada vetorial fica abaixo dos tiles, quando estes forem ativados.
+  map.createPane('vectorMap');
+  map.getPane('vectorMap').style.zIndex = '180';
+  map.getPane('vectorMap').style.pointerEvents = 'none';
+  const vectorBase = L.geoJSON(BRAZIL_STATES_GEOJSON, {
+    pane: 'vectorMap',
+    interactive: false,
+    style: feature => ({
+      color: '#b3c9ce', weight: 1, opacity: 1,
+      fillColor: '#dce9e1', fillOpacity: 1
+    })
+  }).addTo(map);
+  const stateLabels = L.layerGroup();
+  for (const feature of BRAZIL_STATES_GEOJSON.features) {
+    const stateName = feature.properties?.sigla || '';
+    const center = L.geoJSON(feature).getBounds().getCenter();
+    L.marker(center, {
+      interactive: false, keyboard: false,
+      icon: L.divIcon({
+        className: 'state-label',
+        html: '<span>' + stateName + '</span>',
+        iconSize: [34, 16], iconAnchor: [17, 8]
+      })
+    }).addTo(stateLabels);
+  }
+  function updateStateLabels() {
+    if (!state.osm && map.getZoom() <= 6) {
+      if (!map.hasLayer(stateLabels)) stateLabels.addTo(map);
+    } else if (map.hasLayer(stateLabels)) map.removeLayer(stateLabels);
+  }
+  map.on('zoomend', updateStateLabels);
+  updateStateLabels();
+  L.control.attribution({ prefix: false }).addTo(map).addAttribution('Limites estaduais: IBGE · CC0');
+  L.control.scale({ imperial: false }).addTo(map);
+  // OSM é OPCIONAL e fica desligado por padrão. O provedor pode bloquear file://.
   const raster = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, attribution: '© OpenStreetMap contributors', updateWhenIdle: true, keepBuffer: 2
   });
   raster.on('tileerror', () => {
-    tileErrors++;
-    if (tileErrors === 5) showToast('O servidor de mapas não respondeu. Os marcadores continuam acessíveis; tente desativar Ruas OSM.');
+    if (!state.osm) return;
+    state.osm = false;
+    $('osmToggle').checked = false;
+    if (map.hasLayer(raster)) map.removeLayer(raster);
+    updateStateLabels();
+    $('statusTitle').textContent = 'Brasil · mapa vetorial local';
+    showToast('Ruas online indisponíveis. O mapa vetorial offline permanece ativo.');
   });
-  raster.addTo(map);
-  L.control.scale({ imperial: false }).addTo(map);
   const markers = L.markerClusterGroup({
     chunkedLoading: true, chunkInterval: 120, chunkDelay: 30,
     removeOutsideVisibleBounds: true, showCoverageOnHover: false,
@@ -349,8 +387,16 @@
   });
   $('osmToggle').addEventListener('change', e => {
     state.osm = e.target.checked;
-    if (state.osm) { raster.addTo(map); showToast('Ruas OSM ativadas: somente a área e o zoom geram pedidos de tiles externos.'); }
-    else { map.removeLayer(raster); showToast('Ruas OSM desativadas: somente marcadores locais.'); }
+    if (state.osm) {
+      raster.addTo(map);
+      $('statusTitle').textContent = 'Ruas online · experimental';
+      showToast('O OpenStreetMap pode bloquear arquivos abertos por duplo clique. Nenhum dado do KML é enviado.');
+    } else {
+      if (map.hasLayer(raster)) map.removeLayer(raster);
+      $('statusTitle').textContent = 'Brasil · mapa vetorial local';
+      showToast('Mapa vetorial local ativado. Sem requisições cartográficas externas.');
+    }
+    updateStateLabels();
   });
   $('search').addEventListener('input', () => {
     clearTimeout(filterTimer); filterTimer = setTimeout(() => updateFilters(false), 180);
@@ -363,5 +409,6 @@
   drop.addEventListener('click', () => $('upload').click());
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
+  $('statusTitle').textContent = 'Brasil · mapa vetorial local';
   loadDemo();
 })();
