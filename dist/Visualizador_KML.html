@@ -783,6 +783,87 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
 .chart-external-warning{display:block;padding:10px;border-left:3px solid #b3843f;background:#fcf7ea;color:#745627;font-size:11px;line-height:1.45;margin:6px 0}
 @media(max-width:640px){[data-map-profile="srs"] .details,[data-map-profile="vendas"] .details{width:calc(100% - 16px);right:8px;top:60px;bottom:35px}.semantic-legend{padding:7px 10px}.description .tabs{top:-15px}}
 
+
+/* 2026: Visualização com linguagem de mapa patrimonial e painel responsivo. */
+.map-pin-semantic{overflow:visible!important;display:block}
+.semantic-pin{width:30px;height:32px;position:relative;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px #04252b90)}
+.semantic-pin .semantic-svg{width:29px;height:29px;overflow:visible}
+.semantic-code{position:absolute;left:32px;top:6px;min-width:max-content;font-size:12px;font-weight:800;letter-spacing:.1px;color:var(--label-color,#fff);white-space:nowrap;text-shadow:-1px -1px 1px #0c212b,1px -1px 1px #0c212b,-1px 1px 1px #0c212b,1px 1px 1px #0c212b,0 0 3px #061d26}
+.leaflet-marker-icon.map-pin-semantic:hover{z-index:1000!important}
+.leaflet-marker-icon.map-pin-semantic:hover .semantic-pin{transform:scale(1.15);transform-origin:center;filter:drop-shadow(0 2px 4px #052f44c0)}
+.result-dot:has(.semantic-svg){overflow:visible}
+.result-dot .semantic-svg{width:21px!important;height:21px!important;flex:none;filter:drop-shadow(0 1px 2px #14333d60)}
+.legend-icon .semantic-svg{height:23px;width:23px}
+[data-map-profile="srs"] .map-cluster span,[data-map-profile="vendas"] .map-cluster span{
+ background:linear-gradient(155deg,#185b73,#0f3446);
+ width:42px;height:42px;box-shadow:0 2px 8px #143b4d6b;border-width:2px;
+}
+.map-legend{border-radius:13px;width:min(320px,calc(100% - 42px))}
+.semantic-legend{padding:12px 14px;background:linear-gradient(125deg,#e7f1f3,#f8fcfc)}
+.semantic-legend strong{font-size:11px;letter-spacing:1px}
+.semantic-legend p{margin:6px 0 0;font-size:11px;color:#52707a}
+[data-map-profile="srs"] .legend-entries,[data-map-profile="vendas"] .legend-entries{max-height:39vh}
+.meaning-group{padding:7px 0 4px;border-bottom:1px solid #e7edef}
+.meaning-group:last-child{border:0}
+.meaning-group-title{color:#77919b;font-weight:800;font-size:9px;letter-spacing:1px;padding:9px 12px 6px}
+.meaning-line{width:100%;padding:5px 12px;display:flex;align-items:center;gap:9px;background:transparent;border:0;font:inherit;font-size:10.5px;text-align:left;color:#2d4e5d;min-height:33px}
+.meaning-line:disabled{opacity:1;cursor:default}
+.meaning-line:not(:disabled){cursor:pointer}
+.meaning-line:not(:disabled):hover{background:#eff7fa}
+.meaning-line.is-active{background:#d8eef3;box-shadow:inset 3px 0 #177b9c;font-weight:800}
+.meaning-symbol{display:grid;place-items:center;width:25px;height:25px;flex:none}
+.meaning-symbol .semantic-svg{height:24px;width:24px;filter:drop-shadow(0 1px 1px #235c6570)}
+.meaning-color{width:17px;height:17px;border:1px solid #9cb1ba;border-radius:3px;box-shadow:0 0 0 2px #ffffff}
+.meaning-label{flex:1;line-height:1.35}
+.meaning-total{font-variant-numeric:tabular-nums;color:#78929e;font-size:10px}
+[data-map-profile="srs"] .details,[data-map-profile="vendas"] .details{
+ width:min(575px,calc(100% - 36px));right:18px;top:64px;bottom:20px;border:1px solid #d6e6ea;border-radius:15px;
+ box-shadow:0 12px 45px #0e334263
+}
+[data-map-profile="srs"] .detail-head,[data-map-profile="vendas"] .detail-head{padding:18px 22px 17px;background:linear-gradient(117deg,#123848,#14566c)}
+[data-map-profile="srs"] .detail-head h2,[data-map-profile="vendas"] .detail-head h2{font-size:21px;line-height:1.25;letter-spacing:-.4px}
+[data-map-profile="srs"] .detail-head p,[data-map-profile="vendas"] .detail-head p{font-size:11px;color:#c6dce5;line-height:1.55}
+[data-map-profile="srs"] .detail-body,[data-map-profile="vendas"] .detail-body{padding:0 20px 20px;font-size:12px;background:#fff}
+.property-overview{padding:18px 1px 12px;border-bottom:1px solid #e2ecee;margin-bottom:8px}
+.property-identity{display:flex;align-items:center;gap:11px}
+.property-symbol{width:46px;height:46px;border:1px solid #dce9ed;background:#f1f7f8;border-radius:11px;display:grid;place-items:center}
+.identity-kicker{font-size:9px;color:#77959f;letter-spacing:1.1px;font-weight:800;margin-bottom:5px}
+.identity-title{font-size:16px;line-height:1.35;color:#1c4053;display:block}
+.identity-rec{font-size:11px;color:#66818c;margin:9px 0 3px}
+.property-badges{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 12px}
+.property-badge{padding:5px 8px;border-radius:7px;font-weight:700;font-size:10px;background:#edf3f5;color:#396072;border:1px solid #e1edef}
+.property-badge.danger{background:#ffe9e9;color:#a52a33;border-color:#efc7c7}
+.property-badge.info{background:#e4f7fa;color:#147389;border-color:#c1e8ef}
+.property-badge.sale{background:#e6f7ed;color:#14774f;border-color:#c5e5d2}
+.property-badge.muted{background:#f1f2f3;color:#617077;border-color:#dce0e3}
+.metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 10px}
+.metric-card{min-width:0;background:#f2f7f8;border:1px solid #e3ecef;padding:11px 10px;border-radius:9px;display:flex;flex-direction:column;gap:5px}
+.metric-card.metric-major{background:#e7f5f0;border-color:#c9e6d9}
+.metric-label{font-size:10px;color:#66818a;font-weight:600}
+.metric-value{font-size:14px;color:#183b4e;line-height:1.25;overflow-wrap:anywhere}
+.metric-major .metric-value{font-size:18px;color:#126448}
+.case-alert{display:flex;align-items:flex-start;gap:9px;border:1px solid #f0d9b7;background:#fff7eb;padding:10px 12px;margin:12px 0;border-radius:8px;color:#775522;font-size:11px}
+.case-alert-icon{flex:none;border-radius:50%;width:19px;height:19px;background:#ba792c;color:#fff;font-size:13px;font-weight:800;text-align:center;line-height:19px}
+.property-actions{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-top:10px}
+.coordinate-text{font-size:10px;color:#8da0a8;font-variant-numeric:tabular-nums}
+.overview-sharepoint-link{color:#126d86!important;border:1px solid #c7dee6;background:#eaf5f8;border-radius:7px;padding:7px 9px;text-decoration:none;font-size:10px;font-weight:750}
+[data-map-profile="srs"] .detail-body>.description,[data-map-profile="vendas"] .detail-body>.description{margin-top:10px}
+[data-map-profile="srs"] .description .tabs,[data-map-profile="vendas"] .description .tabs{top:0;border-bottom:1px solid #dce8eb;padding:8px 0 12px!important;margin:0 0 15px!important;gap:6px;scroll-behavior:smooth}
+[data-map-profile="srs"] .description .tabs button,[data-map-profile="vendas"] .description .tabs button{background:#f1f5f6!important;border-color:#e1e9ec!important;padding:9px 11px!important;border-radius:9px!important;font-weight:700!important;color:#5d7681!important}
+[data-map-profile="srs"] .description .tabs button.active,[data-map-profile="vendas"] .description .tabs button.active{background:#187d9b!important;border-color:#187d9b!important;color:white!important}
+[data-map-profile="srs"] .description .tabcontent,[data-map-profile="vendas"] .description .tabcontent{padding:3px 0 12px}
+.local-chart{padding:14px;margin:12px 0;border:1px solid #d9e8ed;border-radius:10px;background:#f7fafb}
+.local-chart>strong{font-size:11px;display:block;margin-bottom:9px;color:#325d70}
+.local-chart-svg{width:100%;height:auto;display:block}
+@media(max-width:670px){
+ [data-map-profile="srs"] .details,[data-map-profile="vendas"] .details{right:7px;left:7px;width:auto;top:60px;bottom:32px}
+ [data-map-profile="srs"] .detail-body,[data-map-profile="vendas"] .detail-body{padding:0 14px 16px}
+ .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .semantic-code{display:none}
+ .map-legend{max-height:28vh}
+ .semantic-legend{padding:7px 9px}
+}
+
 </style>
 </head>
 <body>
@@ -848,7 +929,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false, iconFilter: '', iconUrls: [], profile: 'generic' };
+  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false, iconFilter: '', typeFilter: '', iconUrls: [], profile: 'generic' };
   const ALLOWED_TAGS = new Set('a b blockquote br button caption code dd div dl dt em h1 h2 h3 h4 h5 h6 hr i li ol p pre small span strong sub sup table tbody td th thead tr u ul'.split(' '));
   const BLOCKED_TAGS = new Set('script style iframe svg object embed form input select textarea link meta video audio canvas picture source'.split(' '));
   // Teto preventivo, nao uma limitacao do KML ou do OpenFreeMap.
@@ -1022,6 +1103,92 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
   function iconKey(feature) {
     return [feature.color || '#1682a2', feature.iconKind || 'circle', feature.iconHref || ''].join('|');
   }
+
+  const SEMANTIC_TYPES = {
+    hall: 'Salão do Reino / local de reunião', empty: 'SR vazio (sem auditório)',
+    residence: 'Residência', plot: 'Terreno', sale: 'Imóvel à venda',
+    planned: 'Aprovado para futura venda', rented: 'Local alugado sem auditório',
+    interdicted: 'SR interditado', other: 'Outros imóveis'
+  };
+  function getKmlStylePart(node, styles, styleMaps, partName, depth = 0) {
+    if (!node || depth > 6) return null;
+    const inline = child(node, 'Style') || (node.localName === 'Style' ? node : null);
+    if (inline && child(inline, partName)) return child(inline, partName);
+    const ref = directText(node, 'styleUrl').replace(/^.*#/, '');
+    if (ref && styles.has(ref)) return getKmlStylePart(styles.get(ref), styles, styleMaps, partName, depth + 1);
+    if (ref && styleMaps.has(ref)) {
+      const pair = kids(styleMaps.get(ref), 'Pair');
+      const normal = pair.find(p => directText(p, 'key') === 'normal') || pair[0];
+      return getKmlStylePart(normal, styles, styleMaps, partName, depth + 1);
+    }
+    return null;
+  }
+  function identifyProperty(feature) {
+    const href = String(feature.iconHref || '').toLocaleLowerCase('pt-BR');
+    const path = feature.path.join(' / ').toLocaleLowerCase('pt-BR');
+    const head = feature.description.slice(0, 19000).replace(/<[^>]*>/g, ' ').toLocaleLowerCase('pt-BR');
+    // Primeiro as categorias explicitas no estilo ou nas pastas. Não classificar por cor.
+    const candidate = (href + ' ' + path + ' ' + head);
+    if (/interditad/.test(candidate)) return 'interdicted';
+    if (/aprovad[oa].{0,25}futur[ao].{0,12}venda/.test(candidate)) return 'planned';
+    if (/(?:terreno|land|plot).{0,25}(?:constru[çc][aã]o|construction)/.test(candidate) || /terreno|ground-overlay|plot[-_.]/.test(href)) return 'plot';
+    if (/resid[eê]ncia|residence|residential/.test(candidate)) return 'residence';
+    if (/sr vazio|sal[aã]o vazio|sem audit[oó]rio/.test(candidate)) return 'empty';
+    if (/local alugado sem audit[oó]rio/.test(candidate)) return 'rented';
+    if (/outros im[oó]veis|outro im[oó]vel/.test(candidate)) return 'other';
+    if (/(?:sale[-_]?(?:symbol|dollar)|dollar|\$|icon[-_]?venda)/.test(href)) return 'sale';
+    // Não deduzir condição de venda de uma casa comum; hall é o formato padrão SR.
+    return 'hall';
+  }
+  function parseKmlColorLabel(node, styles, styleMaps) {
+    const label = getKmlStylePart(node, styles, styleMaps, 'LabelStyle');
+    return label ? xmlColor(directText(label,'color')) : null;
+  }
+  function getSaleStatus(feature) {
+    const str = (feature.path.join(' / ') + ' ' + feature.description.slice(0, 4000)).toLocaleLowerCase('pt-BR');
+    if (/aprovad[oa].{0,25}futur[ao].{0,12}venda/.test(str)) return 'Aprovado para futura venda';
+    if (/im[oó]vel.{0,18}venda|pre[çc]o de venda/.test(str)) return 'Imóvel à venda';
+    return '';
+  }
+  function getCaseStatus(feature) {
+    const s = feature.description.slice(0, 14000).toLocaleLowerCase('pt-BR');
+    if (/grandes projetos|grande projeto/.test(s)) return { label:'Grandes Projetos',color:'#c92632',level:'danger' };
+    if (/pequena reforma/.test(s)) return { label:'Pequena Reforma',color:'#1db2c9',level:'info' };
+    if (/caso aberto.{0,60}aluguel/.test(s)) return { label:'Aluguel',color:'#8c959c',level:'muted' };
+    return null;
+  }
+  function visualMeaning(feature) {
+    // Mapeamentos de negócio vêm da descrição/pastas e estilos KML, não de cores aleatórias.
+    const type = feature.propertyType || 'hall';
+    const sale = state.profile === 'vendas' ? getSaleStatus(feature) : '';
+    const caseInfo = state.profile === 'srs' ? getCaseStatus(feature) : null;
+    return { type, typeName: SEMANTIC_TYPES[type] || SEMANTIC_TYPES.hall, sale, caseInfo };
+  }
+  function escapeSvgText(text) {
+    return String(text).replace(/[&<>"']/g, v => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[v]));
+  }
+  function semanticSvg(feature, size = 30) {
+    const type = feature.propertyType || 'hall';
+    const fill = /^#[0-9a-f]{6}$/i.test(feature.color) ? feature.color : '#32b35e';
+    const stroke = '#172a31';
+    const paths = {
+      hall: '<path d="M4 13 16 3 28 13V29H4Z"/><path d="M4 13h24"/>',
+      empty: '<path d="M4 13 16 3 28 13V29H4Z"/><path d="M7 18h18M7 23h18"/>',
+      residence: '<path d="M4 13 16 3 28 13V29H4Z"/><path d="M13 29v-10h6v10M7 17h4v4H7M21 17h4v4h-4"/>',
+      plot: '<rect x="5" y="5" width="22" height="22" rx="1"/>',
+      rented: '<circle cx="16" cy="16" r="12"/><path d="M16 9v14M12 14h8"/>',
+      sale: '<circle cx="16" cy="16" r="12"/><text x="16" y="21" font-size="16" text-anchor="middle" font-weight="900" stroke="none" fill="#fff">$</text>',
+      planned: '<circle cx="16" cy="16" r="12"/><text x="16" y="21" font-size="16" text-anchor="middle" font-weight="900" stroke="none" fill="#fff">$</text>',
+      other: '<path d="M16 4 30 28H2Z"/>',
+      interdicted: '<path d="M16 3 30 29H2Z"/><path d="M16 11v8M16 23v1" stroke="#fff" stroke-width="3"/>'
+    };
+    let inner = paths[type] || paths.hall;
+    if (type === 'sale' || type === 'planned') inner = inner.replace(/fill="#fff"/g,'fill="#fff"');
+    const border = type === 'planned' ? '#c8242f' : stroke;
+    return '<svg class="semantic-svg" viewBox="0 0 32 32" width="' + size + '" height="' + size +
+      '" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g fill="' + fill + '" stroke="' + border +
+      '" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round">' + inner + '</g></svg>';
+  }
   function parseKml(source, fileName) {
     const xml = new DOMParser().parseFromString(source, 'application/xml');
     if (xml.getElementsByTagName('parsererror').length) throw new Error('KML com XML inválido. Confira se o arquivo foi gerado corretamente.');
@@ -1046,7 +1213,8 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
         if (d.localName === 'Data' && d.getAttribute('name')) metadata[d.getAttribute('name')] = directText(d, 'value');
       }
       const points = [...n.getElementsByTagName('*')].filter(x => x.localName === 'Point');
-      const common = { name, path, color, description, metadata, iconHref: href, iconKind, iconScale: iconInfo.scale || 1, styleName };
+      const labelColor = parseKmlColorLabel(n, styles, styleMaps);
+      const common = { name, path, color, labelColor, description, metadata, iconHref: href, iconKind, iconScale: iconInfo.scale || 1, styleName };
       for (const point of points) {
         const coords = parseCoordinates(directText(point, 'coordinates'));
         if (coords.length) features.push({ ...common, pos: coords[0], id: features.length });
@@ -1205,6 +1373,17 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     return span;
   }
   function makePin(feature) {
+    if (state.profile !== 'generic') {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'semantic-pin';
+      wrapper.innerHTML = semanticSvg(feature, 30);
+      const span = document.createElement('span');
+      span.className = 'semantic-code';
+      span.textContent = feature.name.match(/\b(?:BRA)?\d{3,6}[#*]?\b/i)?.[0] || feature.name.slice(0, 16);
+      span.style.setProperty('--label-color',feature.labelColor || '#f8fafc');
+      wrapper.appendChild(span);
+      return L.divIcon({className:'map-pin map-pin-semantic',html:wrapper.outerHTML,iconSize:[32,34],iconAnchor:[16,17]});
+    }
     const scale = Math.min(2.1, Math.max(.6, feature.iconScale || 1));
     const size = Math.round(22 * scale);
     const wrapper = document.createElement('div');
@@ -1225,16 +1404,184 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     showToast.timer = setTimeout(() => { el.hidden = true; }, 6300);
   }
   function resetDetail() { $('detail').hidden = true; $('detailBody').replaceChildren(); state.selected = null; }
+  function normalizeField(s) {
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function getFacts(feature) {
+    const fields = new Map();
+    function add(k,v) {
+      const key=normalizeField(k);
+      const val=String(v || '').replace(/\s+/g,' ').trim();
+      if(key && val && val.length < 600 && !fields.has(key)) fields.set(key,val);
+    }
+    for(const [k,v] of Object.entries(feature.metadata)) add(k,v);
+    const doc = new DOMParser().parseFromString(feature.description || '', 'text/html');
+    const rows=doc.querySelectorAll('tr');
+    for(const tr of rows) {
+      const cells=[...tr.children].filter(c=>/^(TD|TH)$/.test(c.tagName));
+      // Aceita tanto tabelas de 2 como de 4 colunas de formulário.
+      for(let i=0;i+1<cells.length;i+=2) add(cells[i].textContent,cells[i+1].textContent);
+    }
+    return fields;
+  }
+  function fact(facts, ...keys) {
+    for(const key of keys) {
+      const v=facts.get(normalizeField(key));
+      if(v && v !== '-' && v !== '—') return v;
+    }
+    return '';
+  }
+  function elText(tag,cls,content) {
+    const e=document.createElement(tag);
+    if(cls)e.className=cls;
+    e.textContent=String(content);
+    return e;
+  }
+  function appendMetric(parent,label,value,major=false) {
+    if(!value) return;
+    const card=elText('div','metric-card'+(major?' metric-major':''),'');
+    card.append(elText('span','metric-label',label),elText('strong','metric-value',value));
+    parent.appendChild(card);
+  }
+  function renderOverview(feature,facts) {
+    const wrapper=elText('section','property-overview','');
+    const meaning=visualMeaning(feature);
+    const top=elText('div','property-identity','');
+    const pict=elText('span','property-symbol','');
+    pict.innerHTML=semanticSvg(feature,34);
+    const lines=elText('div','identity-text','');
+    lines.append(elText('div','identity-kicker',state.profile==='vendas'?'PATRIMÔNIO · VENDAS':'PATRIMÔNIO · SRs'));
+    lines.append(elText('strong','identity-title',meaning.typeName));
+    top.append(pict,lines);
+    wrapper.appendChild(top);
+    const badges=elText('div','property-badges','');
+    function badge(label,kind='') {
+      if(label)badges.appendChild(elText('span','property-badge '+kind,label));
+    }
+    badge(fact(facts,'Tipo de Posse'));
+    badge(fact(facts,'Status do Local','Status de Locação'));
+    if(meaning.caseInfo)badge(meaning.caseInfo.label, meaning.caseInfo.level);
+    if(meaning.sale)badge(meaning.sale,meaning.sale.startsWith('Aprovado')?'danger':'sale');
+    const city=fact(facts,'Cidade');
+    const rec=fact(facts,'REC');
+    if(city)badge(city);
+    if(badges.children.length)wrapper.appendChild(badges);
+    if(rec)wrapper.appendChild(elText('div','identity-rec',rec));
+    const grid=elText('div','metric-grid','');
+    if(state.profile==='vendas') {
+      appendMetric(grid,'Preço de venda',fact(facts,'Preço de venda','Preço','Valor de Venda'),true);
+      appendMetric(grid,'Área do terreno',fact(facts,'Área do terreno','Área do Local'));
+      appendMetric(grid,'Área construída',fact(facts,'Área construída','Área da Construção'));
+      appendMetric(grid,'Tipo de posse',fact(facts,'Tipo de posse'));
+    }else {
+      appendMetric(grid,'Capacidade',fact(facts,'Capacidade','Capacidade primária','Capacidade do auditório'));
+      appendMetric(grid,'Congregações',fact(facts,'Congregações locais','Qtd Congregações','Quantidade de congregações'));
+      appendMetric(grid,'Uso',fact(facts,'Uso'));
+      appendMetric(grid,'Área do local',fact(facts,'Área do Local'));
+      appendMetric(grid,'Próxima reforma',fact(facts,'Ano da próxima reforma','Próxima reforma'));
+      appendMetric(grid,'Valor do prédio',fact(facts,'Valor do Prédio'));
+    }
+    if(grid.children.length)wrapper.appendChild(grid);
+    const alert=fact(facts,'Casos Aberto','Caso Aberto','Condição do Prédio','Descrição do Status do Local');
+    if(alert && !/^(?:nenhum|nenhuma|não|nao|sem caso)$/i.test(alert)) {
+      const row=elText('div','case-alert','');
+      row.append(elText('span','case-alert-icon','!'),elText('span','',alert));
+      wrapper.appendChild(row);
+    }
+    const actions=elText('div','property-actions','');
+    const meta=elText('span','coordinate-text',
+      feature.pos[0].toFixed(5)+', '+feature.pos[1].toFixed(5));
+    actions.appendChild(meta);
+    const links=[...new DOMParser().parseFromString(feature.description||'', 'text/html').querySelectorAll('a[href]')]
+      .filter(a=>isSharePointUrl(a.getAttribute('href')||''));
+    if(links.length) {
+      const link=document.createElement('a');
+      link.href=links[0].href;
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      link.textContent='Abrir no SharePoint ↗';
+      link.className='overview-sharepoint-link';
+      actions.appendChild(link);
+    }
+    wrapper.appendChild(actions);
+    return wrapper;
+  }
+  function enhanceLocalCharts(root) {
+    // Usa SOMENTE séries numéricas já presentes nas tabelas do KML.
+    // Não recupera dados da API externa de gráficos nem inventa valores.
+    for(const panel of root.querySelectorAll('.tabcontent,.tab-panel,.tab-pane')) {
+      const title=(panel.getAttribute('data-kml-id') || '') + ' ' +
+        (panel.previousElementSibling?.textContent || '');
+      const isGraph=/gr[aá]fic|proje|hist[oó]ric|chart/i.test(title) ||
+        /gr[aá]fic|proje|hist[oó]ric/i.test(panel.textContent.slice(0,160));
+      if(!isGraph) continue;
+      const years=[];
+      for(const tr of panel.querySelectorAll('tr')) {
+        const td=tr.querySelectorAll('td,th');
+        if(td.length<2)continue;
+        const year=td[0].textContent.trim(),val=td[1].textContent.trim();
+        if(!/^20\d{2}$/.test(year))continue;
+        const number=Number(val.replace(/\./g,'').replace(',','.').replace(/[^\d.-]/g,''));
+        if(Number.isFinite(number)&&number>=0)years.push({year,value:number});
+      }
+      if(years.length < 2 || years.length > 40) continue;
+      const max=Math.max(1,...years.map(p=>p.value));
+      const min=Math.max(0,Math.min(...years.map(p=>p.value))*.9);
+      const height=175,width=500;
+      const points=years.map((p,i)=>{
+        const x=35+i*(width-55)/Math.max(1,years.length-1);
+        const y=height-28-(p.value-min)/Math.max(1,max-min)*(height-48);
+        return [x,y];
+      });
+      const ns='http://www.w3.org/2000/svg';
+      const svg=document.createElementNS(ns,'svg');
+      svg.setAttribute('viewBox','0 0 500 175');
+      svg.setAttribute('role','img');
+      svg.setAttribute('aria-label','Gráfico local: '+years.length+' pontos anuais');
+      svg.classList.add('local-chart-svg');
+      const axis=document.createElementNS(ns,'path');
+      axis.setAttribute('d','M35 10V147H480');
+      axis.setAttribute('stroke','#b6cbd3');axis.setAttribute('stroke-width','1.2');axis.setAttribute('fill','none');
+      svg.appendChild(axis);
+      const line=document.createElementNS(ns,'polyline');
+      line.setAttribute('points',points.map(p=>p.join(',')).join(' '));
+      line.setAttribute('fill','none');line.setAttribute('stroke','#188ba8');
+      line.setAttribute('stroke-width','3');line.setAttribute('stroke-linecap','round');line.setAttribute('stroke-linejoin','round');
+      svg.appendChild(line);
+      years.forEach((p,i)=>{
+        const c=document.createElementNS(ns,'circle');
+        c.setAttribute('cx',points[i][0]);c.setAttribute('cy',points[i][1]);
+        c.setAttribute('r','4');c.setAttribute('fill','#168aa6');
+        const tip=document.createElementNS(ns,'title');
+        tip.textContent=p.year+': '+p.value.toLocaleString('pt-BR');
+        c.appendChild(tip);svg.appendChild(c);
+        if(i===0||i===years.length-1||i%Math.ceil(years.length/5)===0) {
+          const t=document.createElementNS(ns,'text');
+          t.setAttribute('x',points[i][0]);t.setAttribute('y','166');
+          t.setAttribute('fill','#638190');t.setAttribute('font-size','10');t.setAttribute('text-anchor','middle');
+          t.textContent=p.year;svg.appendChild(t);
+        }
+      });
+      const chart=elText('section','local-chart','');
+      chart.append(elText('strong','','Evolução histórica — dados do arquivo'),svg);
+      panel.insertBefore(chart,panel.firstChild);
+    }
+  }
   function showDetail(feature) {
     state.selected = feature;
     $('detailTitle').textContent = feature.name;
     $('detailSubtitle').textContent = feature.path.join(' / ') || 'Sem pasta';
     const body = $('detailBody');
     body.replaceChildren();
-    const meta = document.createElement('div');
-    meta.className = 'metadata';
-    meta.textContent = 'Latitude ' + feature.pos[0].toFixed(5) + ' · Longitude ' + feature.pos[1].toFixed(5);
-    body.appendChild(meta);
+    if(state.profile !== 'generic') {
+      const facts=getFacts(feature);
+      body.appendChild(renderOverview(feature,facts));
+    }else {
+      const meta = elText('div','metadata',
+        'Latitude '+feature.pos[0].toFixed(5)+' · Longitude '+feature.pos[1].toFixed(5));
+      body.appendChild(meta);
+    }
     body.appendChild(safeDescription(feature.description));
     const md = Object.entries(feature.metadata);
     if (md.length && !feature.description.trim()) {
@@ -1245,6 +1592,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       body.appendChild(table);
     }
     activateTabs(body);
+    if(state.profile !== 'generic')enhanceLocalCharts(body);
     $('detail').hidden = false;
   }
   function renderGroups() {
@@ -1265,7 +1613,8 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       const item = document.createElement('button');
       item.type = 'button'; item.className = 'result';
       const dot = document.createElement('i'); dot.className = 'result-dot';
-      dot.appendChild(markerSymbol(mark.iconKind || 'circle', mark.color, mark.iconUrl));
+      if (state.profile === 'generic') dot.appendChild(markerSymbol(mark.iconKind || 'circle', mark.color, mark.iconUrl));
+      else dot.innerHTML = semanticSvg(mark, 21);
       const info = document.createElement('span'); info.className = 'result-info';
       const strong = document.createElement('strong'); strong.textContent = mark.name;
       const sub = document.createElement('small'); sub.textContent = mark.path.join(' / ') || 'Sem pasta';
@@ -1323,95 +1672,96 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
   }
   function showProfile() {
     const legend = $('mapLegend');
-    let blurb = legend.querySelector('.semantic-legend');
-    if (blurb) blurb.remove();
+    legend.querySelector('.semantic-legend')?.remove();
     document.body.dataset.mapProfile = state.profile;
-    if (state.profile === 'generic') return;
-    blurb = document.createElement('div');
-    blurb.className = 'semantic-legend';
-    const strong = document.createElement('strong');
-    strong.textContent = state.profile === 'srs' ? 'Como interpretar o mapa SRs' : 'Mapa de imóveis à venda';
-    blurb.appendChild(strong);
-    const p = document.createElement('p');
-    p.textContent = state.profile === 'srs'
-      ? 'Cor do marcador = quantidade de congregações. Cor do rótulo = condição do caso. Não confunda as duas informações.'
-      : 'Categorias de venda e situação do prédio são informadas pelas pastas e pelos dados de cada imóvel.';
-    blurb.appendChild(p);
-    if (state.profile === 'srs') {
-      const labels = [
-        ['#c43838','Grandes Projetos'],
-        ['#23a7c5','Pequena Reforma'],
-        ['#8c989e','Aluguel']
-      ];
-      for (const [color,label] of labels) {
-        const row = document.createElement('div');
-        row.className = 'meaning-row';
-        const dot = document.createElement('span');
-        dot.style.backgroundColor = color;
-        dot.className = 'meaning-swatch';
-        const text = document.createElement('span');
-        text.textContent = label;
-        row.append(dot,text);
-        blurb.appendChild(row);
-      }
-      const note = document.createElement('small');
-      note.textContent = 'Branco/verde: condições sem caso prioritário. A associação exata entre cores dos ícones, quantidade e formatos ainda requer a tabela do gerador VBA.';
-      blurb.appendChild(note);
+    $('legendFooter').hidden=state.profile !== 'generic';
+    if(state.profile==='generic')return;
+    const head=elText('div','semantic-legend','');
+    head.append(elText('strong','',state.profile==='srs'?'LEGENDA · SALÕES DO REINO':'LEGENDA · IMÓVEIS À VENDA'),
+      elText('p','',state.profile==='srs'
+        ? 'Forma = imóvel · preenchimento = congregações · rótulo = status.'
+        : 'Forma = imóvel · cor = situação da venda.'));
+    legend.insertBefore(head,$('legendEntries'));
+  }
+  function semanticLegendLine(label,color,svg,type,count) {
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='meaning-line'+(type && state.typeFilter===type?' is-active':'');
+    btn.disabled=false;
+    const picture=elText('span','meaning-symbol','');
+    if(svg)picture.innerHTML=svg;
+    else {const sw=elText('span','meaning-color','');sw.style.background=color||'#ccc';picture.append(sw);}
+    btn.append(picture,elText('span','meaning-label',label));
+    if(count!==null && count!==undefined)btn.append(elText('span','meaning-total',count.toLocaleString('pt-BR')));
+    if(type) btn.addEventListener('click',()=>{
+      state.typeFilter=state.typeFilter===type?'':type;
+      updateFilters(false);
+    });
+    else btn.disabled=true;
+    return btn;
+  }
+  function renderSemanticLegend(box) {
+    box.replaceChildren();
+    const grouped=new Map();
+    for(const f of state.features)grouped.set(f.propertyType||'hall',(grouped.get(f.propertyType||'hall')||0)+1);
+    const section=(title)=>{const item=elText('div','meaning-group','');item.append(elText('div','meaning-group-title',title));box.append(item);return item};
+    const shapes=section('FORMATO · TIPO DO IMÓVEL');
+    let types=state.profile==='srs'
+      ? ['hall','plot','sale','planned','rented','other','interdicted','residence','empty']
+      : ['hall','empty','residence','plot','sale','planned'];
+    for(const type of types){
+      const count=grouped.get(type)||0;
+      const demo={propertyType:type,color:state.profile==='vendas'?'#31c64a':'#39ca65'};
+      const name=SEMANTIC_TYPES[type]||type;
+      shapes.append(semanticLegendLine(name,null,semanticSvg(demo,23),type,count));
     }
-    legend.insertBefore(blurb, $('legendEntries'));
+    if(state.profile==='srs'){
+      const colors=section('PREENCHIMENTO · CONGREGAÇÕES NO PRÉDIO');
+      for(const [name,color] of [
+        ['1 congregação','#960000'],['2 congregações','#ffee00'],['3 congregações','#02db11'],
+        ['4 congregações','#1248ea'],['5 ou mais','#101010'],['Única congregação da cidade','#ffa400']
+      ]) colors.append(semanticLegendLine(name,color,'',null,null));
+      const statuses=section('COR DO RÓTULO · STATUS DO CASO');
+      for(const [name,color] of [
+        ['Sem caso (anterior ao programa / alugado)','#ffffff'],
+        ['Sem caso · próprio após 1999','#20e236'],
+        ['Caso aberto · Grandes Projetos','#f22c32'],
+        ['Caso aberto · Pequena Reforma','#04d2d5'],
+        ['Caso aberto · Aluguel','#99999b']
+      ])statuses.append(semanticLegendLine(name,color,'',null,null));
+    }else{
+      const colors=section('COR · SITUAÇÃO DA VENDA');
+      colors.append(semanticLegendLine('Imóvel à venda','#15e339','',null,null));
+      colors.append(semanticLegendLine('Aprovado para futura venda','#eb3434','',null,null));
+    }
+    $('legendCount').textContent=state.features.length.toLocaleString('pt-BR')+' locais';
+    $('legendClear').hidden=!state.typeFilter;
   }
   function renderLegend() {
-    const box = $('legendEntries');
-    if (!box) return;
+    const box=$('legendEntries');
+    if(!box)return;
+    if(state.profile !== 'generic'){renderSemanticLegend(box);return;}
     box.replaceChildren();
-    const counts = new Map();
-    // Legenda gerada pelos estilos do KML inteiro.
-    for (const f of state.features) {
-      const key = iconKey(f);
-      if (!counts.has(key)) counts.set(key, { key, feature: f, count: 0 });
+    const counts=new Map();
+    for(const f of state.features){
+      const key=iconKey(f);
+      if(!counts.has(key))counts.set(key,{key,feature:f,count:0});
       counts.get(key).count++;
     }
-    const items = [...counts.values()].sort((a, b) => b.count - a.count);
-    $('legendCount').textContent = items.length ? items.length + ' tipos' : 'sem itens';
-    if (!items.length) {
-      const empty = document.createElement('p');
-      empty.className = 'legend-note';
-      empty.textContent = 'Importe um KML ou KMZ para ver seus símbolos.';
-      box.appendChild(empty);
-      return;
-    }
-    for (const item of items) {
-      const f = item.feature;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'legend-entry' + (state.iconFilter === item.key ? ' is-selected' : '');
-      btn.title = f.styleName ? 'Estilo KML: ' + f.styleName : 'Símbolo encontrado no arquivo';
-      const icon = document.createElement('span');
-      icon.className = 'legend-icon';
-      icon.appendChild(markerSymbol(f.iconKind || 'circle', f.color, f.iconUrl));
-      const name = document.createElement('span');
-      name.className = 'legend-name';
-      const kindNames = { circle: 'círculo', square: 'quadrado', diamond: 'losango',
-        triangle: 'triângulo', star: 'estrela', pushpin: 'marcador' };
-      const styleLabel = f.styleName && !/^(?:normal|highlight|default|s\d+|style\d*|icon[-_]?\d+|msn_.*)$/i.test(f.styleName)
-        ? f.styleName.replace(/[_-]+/g, ' ').slice(0, 55)
-        : '';
-      const pathText = f.path.join(' / ');
-      const salesStatus = f.path.find(x => /^(?:SR (?:em uso|vazio)|(?:im[oó]vel|propriedade) (?:à|a) venda|(?:resid[eê]ncia|terreno))$/i.test(x.trim()));
-      name.textContent = state.profile === 'vendas' && salesStatus
-        ? salesStatus
-        : (styleLabel || (colorName(f.color) + ' · ' + (kindNames[f.iconKind] || 'círculo')));
-      const count = document.createElement('span');
-      count.className = 'legend-item-count';
-      count.textContent = item.count.toLocaleString('pt-BR');
-      btn.append(icon, name, count);
-      btn.addEventListener('click', () => {
-        state.iconFilter = state.iconFilter === item.key ? '' : item.key;
-        updateFilters(false);
-      });
+    const items=[...counts.values()].sort((a,b)=>b.count-a.count);
+    $('legendCount').textContent=items.length+' estilos';
+    for(const item of items){
+      const f=item.feature,btn=elText('button','legend-entry'+(state.iconFilter===item.key?' is-selected':''),'');
+      btn.type='button';
+      btn.title=f.styleName||'Símbolo do arquivo';
+      const picture=elText('span','legend-icon','');
+      picture.appendChild(markerSymbol(f.iconKind||'circle',f.color,f.iconUrl));
+      btn.append(picture,elText('span','legend-name',f.styleName||colorName(f.color)),
+        elText('span','legend-item-count',item.count.toLocaleString('pt-BR')));
+      btn.addEventListener('click',()=>{state.iconFilter=state.iconFilter===item.key?'':item.key;updateFilters(false)});
       box.appendChild(btn);
     }
-    $('legendClear').hidden = !state.iconFilter;
+    $('legendClear').hidden=!state.iconFilter;
   }
   function updateFilters(fit = false) {
     state.group = $('groups').value;
@@ -1420,6 +1770,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       const group = f.path.join(' / ');
       if (state.group && group !== state.group) return false;
       if (state.iconFilter && iconKey(f) !== state.iconFilter) return false;
+      if (state.typeFilter && f.propertyType !== state.typeFilter) return false;
       if (!state.search) return true;
       const hay = (f.name + ' ' + group + ' ' + Object.values(f.metadata).join(' ')).toLocaleLowerCase('pt-BR');
       return hay.includes(state.search);
@@ -1432,13 +1783,14 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
   }
   function install(parsed) {
     resetDetail();
-    state.iconFilter = '';
+    state.iconFilter = '';state.typeFilter='';
     for (const url of state.iconUrls) URL.revokeObjectURL(url);
     state.iconUrls = parsed.iconUrls || [];
     state.features = parsed.features;
     state.shapes = parsed.shapes;
     state.fileName = parsed.fileName;
     state.profile = mapProfile(parsed.fileName, parsed.features);
+    if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
     showProfile();
     $('fileName').textContent = parsed.fileName;
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
@@ -1623,7 +1975,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     $('legendEntries').hidden = expanded;
     $('legendFooter').hidden = expanded;
   });
-  $('legendClear').addEventListener('click', () => { state.iconFilter = ''; updateFilters(false); });
+  $('legendClear').addEventListener('click', () => { state.iconFilter = ''; state.typeFilter='';updateFilters(false); });
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
   $('demoButton').addEventListener('click', loadDemo);
