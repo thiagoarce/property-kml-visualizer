@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src data: blob: https://tile.openstreetmap.org https://jwsite.sharepoint.com; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src data: blob: https://tile.openstreetmap.org https://services.arcgisonline.com https://jwsite.sharepoint.com; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Visualizador KML — Mapa de Planejamento</title>
 <style>
 /* required styles */
@@ -894,15 +894,66 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
 .group-stat b{font-variant-numeric:tabular-nums;color:#1d526c}
 @media(max-width:840px){.facet-grid{grid-template-columns:1fr}.territory-panel summary .analysis-hint{display:none}}
 
+/* 2026: painel de produtividade — os dados legados ficam em abas sob demanda. */
+.property-nav{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:5px;overflow-x:auto;scrollbar-width:thin;background:#fff;border-bottom:1px solid #dce9ec;margin:0 -20px;padding:12px 20px 10px;box-shadow:0 2px 9px #183e5011}
+.property-nav-tab{border:1px solid #dce7ea;border-radius:8px;background:#f4f8f9;color:#597582;font-size:11px;font-weight:700;padding:10px 12px;white-space:nowrap;flex:none}
+.property-nav-tab:hover{background:#e9f4f7}
+.property-nav-tab.is-active{background:#187d9b;color:#fff;border-color:#187d9b}
+.property-sections{min-height:180px}
+.property-view[hidden],.map-legend[hidden],.map-status[hidden]{display:none!important}
+.property-main .property-overview{border-bottom:0;padding-top:19px}
+.legacy-section{padding:18px 0 22px;font-size:12px;line-height:1.6}
+.legacy-section>.tabcontent,.legacy-section>.tab-pane,.legacy-section>.tab-panel{display:block!important}
+.legacy-section table{margin:5px 0 14px}
+.legacy-section a{color:#126b84}
+.legacy-source{padding:18px 0 24px}
+.legacy-source .description{font-size:11px}
+.legacy-source .tabs{position:static!important}
+.legacy-reveal{border:1px solid #c6dfe7;color:#176c86;background:#edf6f8;border-radius:8px;padding:10px;font-size:11px;font-weight:700}
+.legacy-help{color:#758e97;font-size:11px;line-height:1.6}
+.hide-metrics .metric-grid{display:none!important}
+.hide-empty-fields .field-is-empty{display:none!important}
+[data-map-profile="srs"] .detail-body,[data-map-profile="vendas"] .detail-body{padding-top:0}
+.sidebar-collapsed .layout{grid-template-columns:0 minmax(0,1fr)}
+.sidebar-collapsed .sidebar{visibility:hidden;pointer-events:none;overflow:hidden;border:0}
+.btn-quiet{border-color:#345a66;background:#173d4d;color:#dff0f3}
+.btn-quiet:hover{background:#23546a;color:#fff}
+.basemap-control{display:flex;align-items:center;gap:8px;border:1px solid #d8e5e9;background:#fff;border-radius:9px;padding:5px 9px;color:#65808d;box-shadow:0 3px 15px #132e3e22;font-size:10px;font-weight:700}
+.basemap-control select{border:0;min-width:130px;max-width:195px;color:#1b485d;background:#fff;font-size:11px;font-weight:700;padding:5px 1px;cursor:pointer}
+.display-menu{position:relative;font-size:11px}
+.display-menu>summary{list-style:none;cursor:pointer;background:#fff;border:1px solid #d8e5e9;border-radius:9px;padding:11px 12px;font-weight:800;color:#1e4b5f;box-shadow:0 3px 15px #132e3e22}
+.display-menu>summary::-webkit-details-marker{display:none}
+.display-menu[open]>summary{background:#dceef2}
+.display-options{position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #d3e4e9;border-radius:11px;box-shadow:0 8px 27px #183b4d44;padding:11px;min-width:200px;display:flex;flex-direction:column;gap:2px;z-index:1000}
+.display-options label{display:flex;align-items:center;gap:8px;white-space:nowrap;padding:8px 6px;color:#355a6d;cursor:pointer}
+.display-options label:hover{background:#f0f7f8;border-radius:6px}
+.display-options input{accent-color:#197f9b}
+#mapLegend[hidden]{display:none!important}
+@media(max-width:900px){
+ .topactions .btn-quiet{padding:8px 9px;font-size:10px}
+ .basemap-control{gap:4px;padding:4px}
+ .basemap-control select{min-width:85px;max-width:120px}
+ .controls{gap:5px}
+ .display-menu>summary{padding:9px}
+ .property-nav{margin:0 -14px;padding:8px 14px}
+}
+@media(max-width:640px){
+ .topactions .btn-quiet{font-size:10px;padding:6px}
+ .basemap-control{font-size:0}
+ .basemap-control select{max-width:120px;font-size:11px}
+ .controls .btn{display:none}
+ .display-options{min-width:178px}
+}
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><span class="logo" aria-hidden="true">◎</span><div><h1>Mapa de Planejamento</h1><small>Visualizador KML • Leaflet</small></div></div>
-  <div class="topactions"><span class="privacy">Dados do KML processados no navegador</span><button class="btn" id="demoButton" type="button">Reabrir exemplo</button><button class="btn btn-main" id="openButton" type="button">Abrir KML</button></div>
+  <div class="topactions"><button class="btn btn-quiet" id="sidebarToggle" type="button" aria-expanded="true" aria-controls="sidebar">Ocultar filtros</button><span class="privacy">Dados do KML processados no navegador</span><button class="btn" id="demoButton" type="button">Reabrir exemplo</button><button class="btn btn-main" id="openButton" type="button">Abrir KML</button></div>
 </header>
 <div class="layout">
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
       <div class="eyebrow">Visualizador</div>
       <h2 class="file-name" id="fileName">Exemplo fictício</h2>
@@ -947,7 +998,28 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
   <main class="map-shell">
     <div class="map" id="map" role="application" aria-label="Mapa interativo"></div>
     <div class="map-status"><b id="statusTitle">Mapa local</b><small>Limites dos 27 estados incorporados. Sem conexão externa por padrão.</small></div>
-    <div class="controls"><button class="btn" type="button" id="fitButton">Ajustar mapa</button><label class="toggle"><input type="checkbox" id="osmToggle">Ruas online (teste)</label></div>
+    <div class="controls">
+      <button class="btn" type="button" id="fitButton">Ajustar mapa</button>
+      <label class="basemap-control">Mapa-base
+        <select id="mapStyle" aria-label="Estilo do mapa">
+          <option value="liberty">Ruas · Liberty</option>
+          <option value="positron">Claro · Positron</option>
+          <option value="bright">Contraste · Bright</option>
+          <option value="dark">Escuro · Dark</option>
+          <option value="satellite">Satélite Esri (teste)</option>
+        </select>
+      </label>
+      <label class="toggle"><input type="checkbox" id="osmToggle">Online</label>
+      <details class="display-menu" id="displayMenu"><summary>Exibição</summary>
+        <div class="display-options">
+          <label><input type="checkbox" id="showSidebar" checked> Painel de filtros</label>
+          <label><input type="checkbox" id="showLegend" checked> Legenda</label>
+          <label><input type="checkbox" id="showMapStatus" checked> Informações do mapa</label>
+          <label><input type="checkbox" id="showMetrics" checked> Indicadores do imóvel</label>
+          <label><input type="checkbox" id="showEmptyFields"> Campos sem dados</label>
+        </div>
+      </details>
+    </div>
     <section class="map-legend" id="mapLegend" aria-label="Legenda de símbolos do arquivo">
       <div class="legend-header">
         <button id="legendToggle" type="button" aria-expanded="true" aria-controls="legendEntries">▦ Legenda <span id="legendCount"></span></button>
@@ -1622,32 +1694,118 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       panel.insertBefore(chart,panel.firstChild);
     }
   }
-  function showDetail(feature) {
-    state.selected = feature;
-    $('detailTitle').textContent = feature.name;
-    $('detailSubtitle').textContent = feature.path.join(' / ') || 'Sem pasta';
-    const body = $('detailBody');
-    body.replaceChildren();
-    if(state.profile !== 'generic') {
-      const facts=getFacts(feature);
-      body.appendChild(renderOverview(feature,facts));
-    }else {
-      const meta = elText('div','metadata',
-        'Latitude '+feature.pos[0].toFixed(5)+' · Longitude '+feature.pos[1].toFixed(5));
-      body.appendChild(meta);
+  // Painel SRs/Vendas: o resumo novo vem primeiro; o HTML legado não é duplicado
+  // nem despejado ao longo da página. Ele continua disponível sob demanda.
+  function updateDetailPreferences() {
+    const detail=$('detailBody');
+    detail.classList.toggle('hide-metrics',!$('showMetrics').checked);
+    detail.classList.toggle('hide-empty-fields',!$('showEmptyFields').checked);
+    for (const row of detail.querySelectorAll('.description tr, .legacy-section tr')) {
+      const cells=[...row.children].filter(n=>n.tagName==='TD');
+      if(!cells.length)continue;
+      const values=cells.filter((n,i)=>i%2===1);
+      const hasContent=values.some(n=>n.textContent.trim()||n.querySelector('img,a[href],button'));
+      const isBlank=values.length && !hasContent;
+      row.classList.toggle('field-is-empty',!!isBlank);
     }
-    body.appendChild(safeDescription(feature.description));
-    const md = Object.entries(feature.metadata);
-    if (md.length && !feature.description.trim()) {
-      const table = document.createElement('table');
-      for (const [k, v] of md) {
-        const tr = table.insertRow(); tr.insertCell().textContent = k; tr.insertCell().textContent = v;
+  }
+  function normalizedTabLabel(label) {
+    const short=String(label||'').replace(/\s+/g,' ').trim();
+    if(/^resumo$/i.test(short))return 'Resumo do KML';
+    if(/^dados completos?$/i.test(short))return 'Dados completos';
+    if(/^nomes e contatos$/i.test(short))return 'Contatos';
+    if(/^gr[aá]ficos e proje[cç][oõ]es$/i.test(short))return 'Gráficos';
+    return short.slice(0,32)||'Detalhes';
+  }
+  function renderDomainDetail(feature,body) {
+    const overview=renderOverview(feature,getFacts(feature));
+    const description=safeDescription(feature.description);
+    const buttons=[...description.querySelectorAll('.tabs button')];
+    const panels=[...description.querySelectorAll('.tabcontent, .tab-pane, .tab-panel')];
+    const nav=elText('nav','property-nav','');
+    nav.setAttribute('aria-label','Seções do imóvel');
+    const host=elText('div','property-sections','');
+    const entries=[{label:'Visão geral',root:elText('section','property-view property-main','')}];
+    entries[0].root.appendChild(overview);
+    if(buttons.length && panels.length){
+      const used=new Set();
+      for(let i=0;i<Math.min(panels.length,buttons.length);i++){
+        const label=normalizedTabLabel(buttons[i].textContent);
+        const base=label;
+        let unique=base,number=2;
+        while(used.has(unique)){unique=base+' '+number++;}
+        used.add(unique);
+        const view=elText('section','property-view legacy-section','');
+        const panel=panels[i];
+        panel.style.display='block';
+        view.appendChild(panel);
+        entries.push({label:unique,root:view});
       }
-      body.appendChild(table);
+    } else if(feature.description.trim()){
+      const view=elText('section','property-view legacy-section','');
+      view.appendChild(description);
+      entries.push({label:'Informações do KML',root:view});
     }
-    activateTabs(body);
-    if(state.profile !== 'generic')enhanceLocalCharts(body);
-    $('detail').hidden = false;
+    if(buttons.length&&panels.length){
+      const original=elText('section','property-view legacy-source','');
+      const trigger=elText('button','legacy-reveal','Carregar visualização original do KML');
+      trigger.type='button';
+      const placeholder=elText('p','legacy-help',
+        'Mostra a estrutura original do Google Earth, inclusive campos e tabelas repetidos. Somente para consulta.');
+      original.append(trigger,placeholder);
+      trigger.addEventListener('click',()=>{
+        trigger.remove();
+        const raw=safeDescription(feature.description);
+        original.appendChild(raw);
+        activateTabs(raw);
+        enhanceLocalCharts(raw);
+        updateDetailPreferences();
+      },{once:true});
+      entries.push({label:'Fonte original',root:original});
+    }
+    for(const [index,entry] of entries.entries()){
+      const button=elText('button','property-nav-tab',entry.label);
+      button.type='button';
+      button.setAttribute('aria-pressed',index===0?'true':'false');
+      button.classList.toggle('is-active',index===0);
+      entry.root.hidden=index!==0;
+      button.addEventListener('click',()=>{
+        for(let i=0;i<entries.length;i++){
+          entries[i].root.hidden=i!==index;
+          nav.children[i].classList.toggle('is-active',i===index);
+          nav.children[i].setAttribute('aria-pressed',i===index?'true':'false');
+        }
+        body.scrollTop=0;
+      });
+      nav.appendChild(button);
+      host.appendChild(entry.root);
+    }
+    body.append(nav,host);
+    // Séries já presentes no arquivo geram um gráfico local, sem API externa.
+    enhanceLocalCharts(host);
+    updateDetailPreferences();
+  }
+  function showDetail(feature) {
+    state.selected=feature;
+    $('detailTitle').textContent=feature.name;
+    $('detailSubtitle').textContent=feature.path.join(' / ')||'Sem pasta';
+    const body=$('detailBody');
+    body.replaceChildren();
+    if(state.profile!=='generic') {
+      renderDomainDetail(feature,body);
+    }else{
+      body.appendChild(elText('div','metadata',
+        'Latitude '+feature.pos[0].toFixed(5)+' · Longitude '+feature.pos[1].toFixed(5)));
+      body.appendChild(safeDescription(feature.description));
+      const md=Object.entries(feature.metadata);
+      if(md.length&&!feature.description.trim()){
+        const table=document.createElement('table');
+        for(const [k,v] of md){const tr=table.insertRow();tr.insertCell().textContent=k;tr.insertCell().textContent=v;}
+        body.appendChild(table);
+      }
+      activateTabs(body);
+    }
+    $('detail').hidden=false;
   }
   function renderGroups() {
     const select = $('groups');
@@ -2336,19 +2494,98 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
   $('fitButton').addEventListener('click', () => {
     if (state.filtered.length) map.fitBounds(L.latLngBounds(state.filtered.map(f => f.pos)).pad(.1), { maxZoom: 12 });
   });
-  $('osmToggle').addEventListener('change', e => {
-    state.osm = e.target.checked;
-    if (state.osm) {
-      raster.addTo(map);
-      $('statusTitle').textContent = 'Ruas online · experimental';
-      showToast('O OpenStreetMap pode bloquear arquivos abertos por duplo clique. Nenhum dado do KML é enviado.');
-    } else {
-      if (map.hasLayer(raster)) map.removeLayer(raster);
-      $('statusTitle').textContent = 'Brasil · mapa vetorial local';
-      showToast('Mapa vetorial local ativado. Sem requisições cartográficas externas.');
+  const ONLINE_STYLES={
+    liberty:'https://tiles.openfreemap.org/styles/liberty',
+    positron:'https://tiles.openfreemap.org/styles/positron',
+    bright:'https://tiles.openfreemap.org/styles/bright',
+    dark:'https://tiles.openfreemap.org/styles/dark'
+  };
+  const styleLayers=new Map();
+  let currentBaseLayer=null;
+  let esriNoticeAccepted=false;
+  function getMapLayer(mode) {
+    if(mode==='liberty')return raster;
+    if(styleLayers.has(mode))return styleLayers.get(mode);
+    let layer;
+    if(mode==='satellite'){
+      layer=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+        maxZoom:19,attribution:'Imagem © Esri e seus fornecedores · World Imagery',
+        updateWhenIdle:true,keepBuffer:2
+      });
+      layer.on('tileerror',()=>{if(currentBaseLayer===layer)showToast('O serviço de imagens da Esri pode exigir autorização ou bloquear este acesso.');});
+    }else if(typeof L.maplibreGL==='function'&&ONLINE_STYLES[mode]){
+      layer=L.maplibreGL({style:ONLINE_STYLES[mode]});
+      layer.on('add',()=>{
+        const gl=layer.getMaplibreMap?.();
+        if(gl&&!gl._viewerListener){
+          gl._viewerListener=true;
+          gl.on('error',e=>{
+            if(currentBaseLayer===layer){
+              console.warn('Falha no estilo de mapa online:',e.error||e);
+              showToast('Falha ao carregar o estilo '+mode+'. Verifique o acesso ao provedor.');
+            }
+          });
+        }
+      });
+    }else{
+      showToast('Outros estilos exigem a versão OpenFreeMap. Usando o mapa de ruas.');
+      $('mapStyle').value='liberty';
+      return raster;
+    }
+    styleLayers.set(mode,layer);
+    return layer;
+  }
+  function applyBaseMap() {
+    if(currentBaseLayer&&map.hasLayer(currentBaseLayer))map.removeLayer(currentBaseLayer);
+    currentBaseLayer=null;
+    state.osm=$('osmToggle').checked;
+    if(state.osm){
+      const mode=$('mapStyle').value;
+      currentBaseLayer=getMapLayer(mode);
+      currentBaseLayer.addTo(map);
+      $('statusTitle').textContent=mode==='satellite'?'Satélite · Esri World Imagery': 'OpenFreeMap · '+mode;
+    }else{
+      $('statusTitle').textContent='Brasil · mapa vetorial local';
     }
     updateStateLabels();
+  }
+  $('osmToggle').addEventListener('change',()=>{
+    if($('osmToggle').checked&&$('mapStyle').value==='satellite'&&!esriNoticeAccepted){
+      if(!window.confirm('O modo satélite acessa imagens da Esri. O provedor recebe a área visualizada e o nível de zoom. O uso institucional depende das condições de licença. Deseja testar?')){
+        $('osmToggle').checked=false;return;
+      }
+      esriNoticeAccepted=true;
+    }
+    applyBaseMap();
   });
+  $('mapStyle').addEventListener('change',()=>{
+    if($('mapStyle').value==='satellite'&&!esriNoticeAccepted){
+      if(!window.confirm('O modo satélite usa o serviço Esri World Imagery, sujeito a licença e autorização institucional. Apenas pedidos de imagens cartográficas são enviados; o KML permanece no navegador. Deseja testar?')){
+        $('mapStyle').value='liberty';return;
+      }
+      esriNoticeAccepted=true;
+    }
+    if(!$('osmToggle').checked) $('osmToggle').checked=true;
+    applyBaseMap();
+  });
+  function toggleSidebar(show) {
+    document.body.classList.toggle('sidebar-collapsed',!show);
+    $('showSidebar').checked=show;
+    $('sidebarToggle').textContent=show?'Ocultar filtros':'Mostrar filtros';
+    $('sidebarToggle').setAttribute('aria-expanded',String(show));
+    requestAnimationFrame(()=>map.invalidateSize());
+  }
+  $('sidebarToggle').addEventListener('click',()=>toggleSidebar(document.body.classList.contains('sidebar-collapsed')));
+  $('showSidebar').addEventListener('change',()=>toggleSidebar($('showSidebar').checked));
+  $('showLegend').addEventListener('change',()=>{
+    $('mapLegend').hidden=!$('showLegend').checked;
+  });
+  $('showMapStatus').addEventListener('change',()=>{
+    document.querySelector('.map-status').hidden=!$('showMapStatus').checked;
+  });
+  for(const id of ['showMetrics','showEmptyFields']){
+    $(id).addEventListener('change',updateDetailPreferences);
+  }
   $('search').addEventListener('input', () => {
     clearTimeout(filterTimer); filterTimer = setTimeout(() => updateFilters(false), 180);
   });
