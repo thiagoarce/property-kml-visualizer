@@ -51,12 +51,30 @@ jobs:
             z.write(source, arcname='doc.kml')
           print('KMZ de teste gerado, apenas com dados fictícios')
           PY
+      - name: Gerar KMZ fictício com ícone PNG local
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          import zlib,struct
+          def chunk(tag,data):
+            return struct.pack('>I',len(data))+tag+data+struct.pack('>I',zlib.crc32(tag+data)&0xffffffff)
+          pixel=b'\x00'+(b'\x00\xcc\x00\xff'*8)
+          png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',8,8,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(pixel*8))+chunk(b'IEND',b'')
+          kml=Path('exemplos/estilos-ficticios.kml')
+          with ZipFile('exemplos/estilos-ficticios.kmz','w',ZIP_DEFLATED) as z:
+            z.write(kml,arcname='doc.kml')
+            z.writestr('icons/green-square.png',png)
+          print('KMZ sintético de ícones gerado')
+          PY
       - name: Instalar navegador no ambiente de teste
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
       - name: Verificar KMZ no HTML local
         run: node tests/kmz-browser-smoke.mjs
+      - name: Verificar ícones internos e legenda local
+        run: node tests/icons-legend-browser.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: Visualizador-KML-OpenFreeMap-file-test
