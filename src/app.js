@@ -1561,7 +1561,50 @@
     parsed.iconUrls = urls;
     // Nenhum URL externo do KML é carregado por este processo.
   }
-  async function readKml(file) {
+  // Persistência local no perfil do navegador, sem serviços externos.
+  const MAP_DB='planejamento-ultimo-mapa-v1';
+  function mapStorage(){
+    return new Promise((resolve,reject)=>{
+      if(!('indexedDB' in window))return reject(Error('IndexedDB indisponível'));
+      const req=indexedDB.open(MAP_DB,1);
+      req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('arquivos'))req.result.createObjectStore('arquivos');};
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(req.error||Error('Armazenamento não abriu'));
+      req.onblocked=()=>reject(Error('Armazenamento bloqueado'));
+    });
+  }
+  async function cacheAction(mode,record){
+    const db=await mapStorage();
+    try {
+      return await new Promise((resolve,reject)=>{
+        const tx=db.transaction('arquivos',mode==='get'?'readonly':'readwrite');
+        const store=tx.objectStore('arquivos');
+        const req=mode==='get'?store.get('ultimo'):mode==='delete'?store.delete('ultimo'):store.put(record,'ultimo');
+        req.onsuccess=()=>{if(mode==='get')resolve(req.result);};
+        tx.oncomplete=()=>{if(mode!=='get')resolve();};
+        tx.onabort=()=>reject(tx.error||Error('Operação cancelada'));
+        tx.onerror=()=>reject(tx.error||Error('Erro ao salvar'));
+        req.onerror=()=>reject(req.error||Error('Erro no armazenamento'));
+      });
+    }finally{db.close();}
+  }
+  function showSessionNote(savedAt){
+    const when=new Date(savedAt);
+    $('sessionText').textContent='Da última sessão'+(Number.isFinite(when.getTime())?' · '+when.toLocaleDateString('pt-BR'):'')+'. Pode existir um KMZ mais recente.';
+    $('sessionNote').hidden=false;
+  }
+  async function restoreLastFile(){
+    try{
+      const saved=await cacheAction('get');
+      if(!saved?.file||!saved.fileName)return;
+      const file=saved.file instanceof File?saved.file:new File([saved.file],saved.fileName,{type:saved.mime||''});
+      if(!/\.(?:kml|kmz)$/i.test(file.name))return;
+      await readKml(file,{restored:true,savedAt:saved.savedAt});
+    }catch(err){
+      console.info('Restaurar o último mapa indisponível:',err);
+    }
+  }
+  async function readKml(file,options={}) {
     if (!file) return;
     const isKmz = /\.kmz$/i.test(file.name);
     if (!isKmz && !/\.kml$/i.test(file.name)) {
@@ -1613,6 +1656,13 @@
       document.body.classList.remove('is-welcome');
       // Atualiza a área do Leaflet depois de revelar a interface.
       requestAnimationFrame(() => map.invalidateSize());
+      if(options.restored)showSessionNote(options.savedAt);
+      else {
+        $('sessionNote').hidden=true;
+        // Guardar o arquivo original mantém as imagens/ícones KMZ na próxima sessão.
+        cacheAction('put',{file,fileName:file.name,mime:file.type,savedAt:Date.now()})
+          .catch(err=>{console.warn('Não foi possível guardar o último mapa:',err);showToast('Mapa aberto, mas sem permissão para salvar uma cópia local.');});
+      }
     } catch (err) {
       $('fileName').textContent = previousName || '—';
       const message='Não foi possível abrir o arquivo: ' + (err && err.message ? err.message : String(err));
@@ -1645,6 +1695,10 @@
   $('exportFiltered').addEventListener('click',exportAnalysisCSV);
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
+  $('forgetMap').addEventListener('click',async()=>{
+    try{await cacheAction('delete');$('sessionNote').hidden=true;showToast('Cópia local apagada. O mapa atual permanece aberto.');}
+    catch(err){showToast('Não foi possível apagar a cópia local.');}
+  });
 
   $('closeDetail').addEventListener('click', resetDetail);
   $('fitButton').addEventListener('click', () => {
@@ -1758,5 +1812,6 @@
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
   $('statusTitle').textContent = 'Brasil · mapa vetorial local';
-  // A aplicação inicia vazia: apenas a importação fica visível.
+  // Tenta restaurar somente após criar controles e eventos.
+  restoreLastFile();
 })();
