@@ -1879,6 +1879,105 @@
     parsed.iconAssets = iconAssets;
     // Nenhum URL externo do KML é carregado por este processo.
   }
+  // IndexedDB guarda uma cópia do arquivo original e outra representação pronta.
+  // Incrementar CACHE_SCHEMA quando parser, classificação ou índice mudarem.
+  const CACHE_SCHEMA=1;
+  const VIEW_KEY='vista';
+  let viewPersistenceEnabled=false,viewTimer=null,restoring=false;
+  function captureView() {
+    const center=map.getCenter();
+    return {
+      center:[center.lat,center.lng],zoom:map.getZoom(),
+      search:$('search').value,group:$('groups').value,
+      iconFilter:state.iconFilter,typeFilter:state.typeFilter,
+      filters:Object.fromEntries(['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'].map(k=>[k,$(k).value])),
+      question:$('question').value,
+      workspace:document.querySelector('.workspace-tab.is-active')?.dataset.workspace||'locais',
+      mapStyle:$('mapStyle').value,
+      display:Object.fromEntries(['showSidebar','showLegend','showMapStatus','showMetrics','showEmptyFields'].map(k=>[k,$(k).checked]))
+    };
+  }
+  function queueViewSave() {
+    if(!viewPersistenceEnabled||restoring)return;
+    clearTimeout(viewTimer);
+    viewTimer=setTimeout(()=>{
+      if(viewPersistenceEnabled&&!restoring){
+        cacheAction('put',captureView(),VIEW_KEY).catch(e=>console.info('Preferências não salvas:',e));
+      }
+    },280);
+  }
+  function makeProcessedCache(parsed,file){
+    // Não gravar objetos Leaflet, listeners nem URL.createObjectURL: não são reutilizáveis.
+    const icons=parsed.iconAssets||[];
+    const keys=new Map(icons.map((item,i)=>[item.url,i]));
+    return {
+      schema:CACHE_SCHEMA,fileName:file.name,fileSize:file.size,lastModified:file.lastModified,
+      features:state.features.map(feature=>{
+        const {marker,iconUrl,...properties}=feature;
+        if(keys.has(iconUrl))properties.cachedIcon=keys.get(iconUrl);
+        return properties;
+      }),
+      shapes:parsed.shapes,
+      folders:parsed.folders||[],
+      iconBlobs:icons.map(x=>x.blob)
+    };
+  }
+  function recoverProcessedCache(saved) {
+    const p=saved?.processed;
+    if(!p||p.schema!==CACHE_SCHEMA||p.fileName!==saved.fileName||
+      p.fileSize!==saved.file.size||p.lastModified!==saved.file.lastModified||
+      !Array.isArray(p.features)||!Array.isArray(p.shapes)||!Array.isArray(p.iconBlobs)){
+      return null;
+    }
+    if(p.features.length>500000||p.shapes.length>500000||p.iconBlobs.length>2000)return null;
+    const urls=[];
+    try{
+      for(const blob of p.iconBlobs){
+        if(!(blob instanceof Blob))throw Error('Ícone inválido no cache');
+        urls.push(URL.createObjectURL(blob));
+      }
+      const features=p.features.map(f=>{
+        if(!f||!Array.isArray(f.pos)||f.pos.length!==2||
+          !f.pos.every(Number.isFinite)||!Array.isArray(f.path)||typeof f.name!=='string'){
+          throw Error('Marcador inválido no cache');
+        }
+        const {cachedIcon,...rest}=f;
+        if(Number.isInteger(cachedIcon)&&cachedIcon>=0&&cachedIcon<urls.length)rest.iconUrl=urls[cachedIcon];
+        return rest;
+      });
+      return {fileName:saved.fileName,features,shapes:p.shapes,folders:p.folders||[],iconUrls:urls};
+    }catch(e){
+      urls.forEach(url=>URL.revokeObjectURL(url));
+      console.warn('Cache pronto inválido; o KMZ original será relido:',e);
+      return null;
+    }
+  }
+  async function saveOriginalAndPrepared(file,parsed){
+    const timestamp=Date.now();
+    const prepared=makeProcessedCache(parsed,file);
+    const base={file,fileName:file.name,mime:file.type,savedAt:timestamp};
+    try{
+      await cacheAction('put',{...base,processed:prepared});
+    }catch(e){
+      console.warn('Cache processado excedeu limites ou foi bloqueado:',e);
+      // Salvamento degradado: o KMZ original continua disponível na próxima sessão.
+      await cacheAction('put',base);
+      showToast('Mapa salvo. O cache acelerado não coube no armazenamento local.');
+    }
+    viewPersistenceEnabled=true;
+    await cacheAction('put',captureView(),VIEW_KEY);
+  }
+  function showCachedMap(parsed,savedAt,view){
+    restoring=true;
+    try{
+      install(parsed,{preprocessed:true,skipFit:true,view});
+      $('welcomeScreen').hidden=true;
+      document.body.classList.remove('is-welcome');
+      requestAnimationFrame(()=>map.invalidateSize());
+      showSessionNote(savedAt,true);
+      viewPersistenceEnabled=true;
+    }finally{restoring=false;}
+  }
   // Persistência local no perfil do navegador, sem serviços externos.
   const MAP_DB='planejamento-ultimo-mapa-v1';
   function mapStorage(){
@@ -1891,13 +1990,13 @@
       req.onblocked=()=>reject(Error('Armazenamento bloqueado'));
     });
   }
-  async function cacheAction(mode,record){
+  async function cacheAction(mode,record,key='ultimo'){
     const db=await mapStorage();
     try {
       return await new Promise((resolve,reject)=>{
         const tx=db.transaction('arquivos',mode==='get'?'readonly':'readwrite');
         const store=tx.objectStore('arquivos');
-        const req=mode==='get'?store.get('ultimo'):mode==='delete'?store.delete('ultimo'):store.put(record,'ultimo');
+        const req=mode==='get'?store.get(key):mode==='delete'?store.delete(key):mode==='clear'?store.clear():store.put(record,key);
         req.onsuccess=()=>{if(mode==='get')resolve(req.result);};
         tx.oncomplete=()=>{if(mode!=='get')resolve();};
         tx.onabort=()=>reject(tx.error||Error('Operação cancelada'));
@@ -1906,20 +2005,36 @@
       });
     }finally{db.close();}
   }
-  function showSessionNote(savedAt){
+  function showSessionNote(savedAt,prepared=false){
     const when=new Date(savedAt);
-    $('sessionText').textContent='Da última sessão'+(Number.isFinite(when.getTime())?' · '+when.toLocaleDateString('pt-BR'):'')+'. Pode existir um KMZ mais recente.';
+    $('sessionText').textContent=(prepared?'Mapa restaurado':'Da última sessão')+(Number.isFinite(when.getTime())?' · '+when.toLocaleDateString('pt-BR'):'')+'. Pode existir um KMZ mais recente.';
     $('sessionNote').hidden=false;
   }
   async function restoreLastFile(){
+    let saved;
     try{
-      const saved=await cacheAction('get');
+      saved=await cacheAction('get');
       if(!saved?.file||!saved.fileName)return;
+      if(!/\.(?:kml|kmz)$/i.test(saved.fileName))return;
+      const view=await cacheAction('get',null,VIEW_KEY).catch(()=>null);
+      const cached=recoverProcessedCache(saved);
+      if(cached){
+        $('loadingName').textContent=saved.fileName;
+        $('loadingStage').textContent='Restaurando o mapa já processado…';
+        $('loadingScreen').hidden=false;
+        await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
+        try{
+          showCachedMap(cached,saved.savedAt,view);
+          return;
+        }catch(e){
+          for(const url of cached.iconUrls||[])URL.revokeObjectURL(url);
+          console.warn('Falha ao usar cache processado, relendo arquivo:',e);
+        }finally{$('loadingScreen').hidden=true;}
+      }
       const file=saved.file instanceof File?saved.file:new File([saved.file],saved.fileName,{type:saved.mime||''});
-      if(!/\.(?:kml|kmz)$/i.test(file.name))return;
-      await readKml(file,{restored:true,savedAt:saved.savedAt});
+      await readKml(file,{restored:true,savedAt:saved.savedAt,view});
     }catch(err){
-      console.info('Restaurar o último mapa indisponível:',err);
+      console.info('Restaurar último mapa indisponível:',err);
     }
   }
   async function readKml(file,options={}) {
