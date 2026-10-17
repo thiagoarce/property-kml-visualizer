@@ -41,6 +41,22 @@ jobs:
           assert not re.search(r'<link[^>]+rel=["\x27]stylesheet', data, re.I)
           print('HTML standalone compilado:',file.stat().st_size,'bytes')
           PY
+      - name: Gerar KMZ fictício para teste local
+        run: |
+          python - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from pathlib import Path
+          source=Path('exemplos/exemplo-ficticio.kml')
+          with ZipFile('exemplos/exemplo-ficticio.kmz', 'w', ZIP_DEFLATED) as z:
+            z.write(source, arcname='doc.kml')
+          print('KMZ de teste gerado, apenas com dados fictícios')
+          PY
+      - name: Instalar navegador no ambiente de teste
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verificar KMZ no HTML local
+        run: node tests/kmz-browser-smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: Visualizador-KML-OpenFreeMap-file-test
