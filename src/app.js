@@ -853,6 +853,7 @@
       body.scrollTop=0;
     }
     entries.forEach((entry,index)=>{
+      entry.root.hidden=index!==0;
       const button=elText('button','property-nav-tab',entry.label);
       button.type='button';
       button.setAttribute('role','tab');
