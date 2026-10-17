@@ -36,3 +36,12 @@ Esta é uma tentativa técnica, não uma garantia de compatibilidade. O MapLibre
 - Com ruas desligadas, não existem solicitações de mapas para OpenFreeMap.
 - OpenFreeMap não exige chave de API, mas não oferece SLA. A equipe de TI precisa avaliar o provedor para uso institucional.
 - A versão original permanece em dist/Visualizador_KML.html. Para voltar: git switch feat/leaflet-single-html.
+
+## Importação de KMZ (experimental)
+
+A edição compilada `Visualizador_KML_OpenFreeMap.html` aceita diretamente arquivos `.kml` e `.kmz`, sem precisar descompactar. Para KMZ, o JSZip 3.10.1 (MIT) está embutido no próprio HTML e só extrai o KML interno, escolhendo prioritariamente `doc.kml`. O XML é interpretado no navegador, sem upload ou serviços de IA.
+
+**Limitação:** anexos dentro do KMZ (fotografias, ícones, overlays e outros recursos) ainda não são exibidos; somente o conteúdo KML interno é interpretado. KML interno ou KMZ acima de 512 MB não são aceitos. Um KMZ compactado pode parecer pequeno, mas a descompactação e o `DOMParser` podem usar muita memória para mapas grandes.
+
+O CI gera um KMZ totalmente fictício a partir de `exemplos/exemplo-ficticio.kml` e verifica a importação via `file://`, sem requisições externas.
+
