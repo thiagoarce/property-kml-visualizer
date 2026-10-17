@@ -998,20 +998,13 @@
     legend.insertBefore(head,$('legendEntries'));
   }
   function semanticLegendLine(label,color,svg,type,count) {
-    const btn=document.createElement('button');
-    btn.type='button';
-    btn.className='meaning-line'+(type && state.typeFilter===type?' is-active':'');
-    btn.disabled=false;
+    const btn=document.createElement('div');
+    btn.className='meaning-line';
     const picture=elText('span','meaning-symbol','');
     if(svg)picture.innerHTML=svg;
     else {const sw=elText('span','meaning-color','');sw.style.background=color||'#ccc';picture.append(sw);}
     btn.append(picture,elText('span','meaning-label',label));
     if(count!==null && count!==undefined)btn.append(elText('span','meaning-total',count.toLocaleString('pt-BR')));
-    if(type) btn.addEventListener('click',()=>{
-      state.typeFilter=state.typeFilter===type?'':type;
-      updateFilters(false);
-    });
-    else btn.disabled=true;
     return btn;
   }
   function renderSemanticLegend(box) {
@@ -1049,7 +1042,7 @@
       colors.append(semanticLegendLine('Aprovado para futura venda','#eb3434','',null,null));
     }
     $('legendCount').textContent=state.features.length.toLocaleString('pt-BR')+' locais';
-    $('legendClear').hidden=!state.typeFilter;
+    $('legendClear').hidden=true;
   }
   function renderLegend() {
     const box=$('legendEntries');
