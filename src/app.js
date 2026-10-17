@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false, iconFilter: '', iconUrls: [], profile: 'generic' };
+  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false, iconFilter: '', typeFilter: '', iconUrls: [], profile: 'generic' };
   const ALLOWED_TAGS = new Set('a b blockquote br button caption code dd div dl dt em h1 h2 h3 h4 h5 h6 hr i li ol p pre small span strong sub sup table tbody td th thead tr u ul'.split(' '));
   const BLOCKED_TAGS = new Set('script style iframe svg object embed form input select textarea link meta video audio canvas picture source'.split(' '));
   // Teto preventivo, nao uma limitacao do KML ou do OpenFreeMap.
@@ -209,7 +209,7 @@
     if (/sr vazio|sal[aã]o vazio|sem audit[oó]rio/.test(candidate)) return 'empty';
     if (/local alugado sem audit[oó]rio/.test(candidate)) return 'rented';
     if (/outros im[oó]veis|outro im[oó]vel/.test(candidate)) return 'other';
-    if (/im[oó]vel.{0,18}venda|for.?sale/.test(candidate)) return 'sale';
+    if (/(?:sale[-_]?(?:symbol|dollar)|dollar|\$|icon[-_]?venda)/.test(href)) return 'sale';
     // Não deduzir condição de venda de uma casa comum; hall é o formato padrão SR.
     return 'hall';
   }
@@ -745,95 +745,96 @@
   }
   function showProfile() {
     const legend = $('mapLegend');
-    let blurb = legend.querySelector('.semantic-legend');
-    if (blurb) blurb.remove();
+    legend.querySelector('.semantic-legend')?.remove();
     document.body.dataset.mapProfile = state.profile;
-    if (state.profile === 'generic') return;
-    blurb = document.createElement('div');
-    blurb.className = 'semantic-legend';
-    const strong = document.createElement('strong');
-    strong.textContent = state.profile === 'srs' ? 'Como interpretar o mapa SRs' : 'Mapa de imóveis à venda';
-    blurb.appendChild(strong);
-    const p = document.createElement('p');
-    p.textContent = state.profile === 'srs'
-      ? 'Cor do marcador = quantidade de congregações. Cor do rótulo = condição do caso. Não confunda as duas informações.'
-      : 'Categorias de venda e situação do prédio são informadas pelas pastas e pelos dados de cada imóvel.';
-    blurb.appendChild(p);
-    if (state.profile === 'srs') {
-      const labels = [
-        ['#c43838','Grandes Projetos'],
-        ['#23a7c5','Pequena Reforma'],
-        ['#8c989e','Aluguel']
-      ];
-      for (const [color,label] of labels) {
-        const row = document.createElement('div');
-        row.className = 'meaning-row';
-        const dot = document.createElement('span');
-        dot.style.backgroundColor = color;
-        dot.className = 'meaning-swatch';
-        const text = document.createElement('span');
-        text.textContent = label;
-        row.append(dot,text);
-        blurb.appendChild(row);
-      }
-      const note = document.createElement('small');
-      note.textContent = 'Branco/verde: condições sem caso prioritário. A associação exata entre cores dos ícones, quantidade e formatos ainda requer a tabela do gerador VBA.';
-      blurb.appendChild(note);
+    $('legendFooter').hidden=state.profile !== 'generic';
+    if(state.profile==='generic')return;
+    const head=elText('div','semantic-legend','');
+    head.append(elText('strong','',state.profile==='srs'?'LEGENDA · SALÕES DO REINO':'LEGENDA · IMÓVEIS À VENDA'),
+      elText('p','',state.profile==='srs'
+        ? 'Forma = imóvel · preenchimento = congregações · rótulo = status.'
+        : 'Forma = imóvel · cor = situação da venda.'));
+    legend.insertBefore(head,$('legendEntries'));
+  }
+  function semanticLegendLine(label,color,svg,type,count) {
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='meaning-line'+(type && state.typeFilter===type?' is-active':'');
+    btn.disabled=false;
+    const picture=elText('span','meaning-symbol','');
+    if(svg)picture.innerHTML=svg;
+    else {const sw=elText('span','meaning-color','');sw.style.background=color||'#ccc';picture.append(sw);}
+    btn.append(picture,elText('span','meaning-label',label));
+    if(count!==null && count!==undefined)btn.append(elText('span','meaning-total',count.toLocaleString('pt-BR')));
+    if(type) btn.addEventListener('click',()=>{
+      state.typeFilter=state.typeFilter===type?'':type;
+      updateFilters(false);
+    });
+    else btn.disabled=true;
+    return btn;
+  }
+  function renderSemanticLegend(box) {
+    box.replaceChildren();
+    const grouped=new Map();
+    for(const f of state.features)grouped.set(f.propertyType||'hall',(grouped.get(f.propertyType||'hall')||0)+1);
+    const section=(title)=>{const item=elText('div','meaning-group','');item.append(elText('div','meaning-group-title',title));box.append(item);return item};
+    const shapes=section('FORMATO · TIPO DO IMÓVEL');
+    let types=state.profile==='srs'
+      ? ['hall','plot','sale','planned','rented','other','interdicted','residence','empty']
+      : ['hall','empty','residence','plot','sale','planned'];
+    for(const type of types){
+      const count=grouped.get(type)||0;
+      const demo={propertyType:type,color:state.profile==='vendas'?'#31c64a':'#39ca65'};
+      const name=SEMANTIC_TYPES[type]||type;
+      shapes.append(semanticLegendLine(name,null,semanticSvg(demo,23),type,count));
     }
-    legend.insertBefore(blurb, $('legendEntries'));
+    if(state.profile==='srs'){
+      const colors=section('PREENCHIMENTO · CONGREGAÇÕES NO PRÉDIO');
+      for(const [name,color] of [
+        ['1 congregação','#960000'],['2 congregações','#ffee00'],['3 congregações','#02db11'],
+        ['4 congregações','#1248ea'],['5 ou mais','#101010'],['Única congregação da cidade','#ffa400']
+      ]) colors.append(semanticLegendLine(name,color,'',null,null));
+      const statuses=section('COR DO RÓTULO · STATUS DO CASO');
+      for(const [name,color] of [
+        ['Sem caso (anterior ao programa / alugado)','#ffffff'],
+        ['Sem caso · próprio após 1999','#20e236'],
+        ['Caso aberto · Grandes Projetos','#f22c32'],
+        ['Caso aberto · Pequena Reforma','#04d2d5'],
+        ['Caso aberto · Aluguel','#99999b']
+      ])statuses.append(semanticLegendLine(name,color,'',null,null));
+    }else{
+      const colors=section('COR · SITUAÇÃO DA VENDA');
+      colors.append(semanticLegendLine('Imóvel à venda','#15e339','',null,null));
+      colors.append(semanticLegendLine('Aprovado para futura venda','#eb3434','',null,null));
+    }
+    $('legendCount').textContent=state.features.length.toLocaleString('pt-BR')+' locais';
+    $('legendClear').hidden=!state.typeFilter;
   }
   function renderLegend() {
-    const box = $('legendEntries');
-    if (!box) return;
+    const box=$('legendEntries');
+    if(!box)return;
+    if(state.profile !== 'generic'){renderSemanticLegend(box);return;}
     box.replaceChildren();
-    const counts = new Map();
-    // Legenda gerada pelos estilos do KML inteiro.
-    for (const f of state.features) {
-      const key = iconKey(f);
-      if (!counts.has(key)) counts.set(key, { key, feature: f, count: 0 });
+    const counts=new Map();
+    for(const f of state.features){
+      const key=iconKey(f);
+      if(!counts.has(key))counts.set(key,{key,feature:f,count:0});
       counts.get(key).count++;
     }
-    const items = [...counts.values()].sort((a, b) => b.count - a.count);
-    $('legendCount').textContent = items.length ? items.length + ' tipos' : 'sem itens';
-    if (!items.length) {
-      const empty = document.createElement('p');
-      empty.className = 'legend-note';
-      empty.textContent = 'Importe um KML ou KMZ para ver seus símbolos.';
-      box.appendChild(empty);
-      return;
-    }
-    for (const item of items) {
-      const f = item.feature;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'legend-entry' + (state.iconFilter === item.key ? ' is-selected' : '');
-      btn.title = f.styleName ? 'Estilo KML: ' + f.styleName : 'Símbolo encontrado no arquivo';
-      const icon = document.createElement('span');
-      icon.className = 'legend-icon';
-      if (state.profile === 'generic') icon.appendChild(markerSymbol(f.iconKind || 'circle', f.color, f.iconUrl));
-      else icon.innerHTML = semanticSvg(f, 22);
-      const name = document.createElement('span');
-      name.className = 'legend-name';
-      const kindNames = { circle: 'círculo', square: 'quadrado', diamond: 'losango',
-        triangle: 'triângulo', star: 'estrela', pushpin: 'marcador' };
-      const styleLabel = f.styleName && !/^(?:normal|highlight|default|s\d+|style\d*|icon[-_]?\d+|msn_.*)$/i.test(f.styleName)
-        ? f.styleName.replace(/[_-]+/g, ' ').slice(0, 55)
-        : '';
-      const pathText = f.path.join(' / ');
-      const salesStatus = f.path.find(x => /^(?:SR (?:em uso|vazio)|(?:im[oó]vel|propriedade) (?:à|a) venda|(?:resid[eê]ncia|terreno))$/i.test(x.trim()));
-      name.textContent = state.profile === 'generic' ? (styleLabel || (colorName(f.color) + ' · ' + (kindNames[f.iconKind] || 'círculo'))) :
-        ((SEMANTIC_TYPES[f.propertyType] || SEMANTIC_TYPES.hall) + ' · ' + (state.profile === 'srs' ? colorName(f.color) : (getSaleStatus(f) || colorName(f.color))));
-      const count = document.createElement('span');
-      count.className = 'legend-item-count';
-      count.textContent = item.count.toLocaleString('pt-BR');
-      btn.append(icon, name, count);
-      btn.addEventListener('click', () => {
-        state.iconFilter = state.iconFilter === item.key ? '' : item.key;
-        updateFilters(false);
-      });
+    const items=[...counts.values()].sort((a,b)=>b.count-a.count);
+    $('legendCount').textContent=items.length+' estilos';
+    for(const item of items){
+      const f=item.feature,btn=elText('button','legend-entry'+(state.iconFilter===item.key?' is-selected':''),'');
+      btn.type='button';
+      btn.title=f.styleName||'Símbolo do arquivo';
+      const picture=elText('span','legend-icon','');
+      picture.appendChild(markerSymbol(f.iconKind||'circle',f.color,f.iconUrl));
+      btn.append(picture,elText('span','legend-name',f.styleName||colorName(f.color)),
+        elText('span','legend-item-count',item.count.toLocaleString('pt-BR')));
+      btn.addEventListener('click',()=>{state.iconFilter=state.iconFilter===item.key?'':item.key;updateFilters(false)});
       box.appendChild(btn);
     }
-    $('legendClear').hidden = !state.iconFilter;
+    $('legendClear').hidden=!state.iconFilter;
   }
   function updateFilters(fit = false) {
     state.group = $('groups').value;
@@ -842,6 +843,7 @@
       const group = f.path.join(' / ');
       if (state.group && group !== state.group) return false;
       if (state.iconFilter && iconKey(f) !== state.iconFilter) return false;
+      if (state.typeFilter && f.propertyType !== state.typeFilter) return false;
       if (!state.search) return true;
       const hay = (f.name + ' ' + group + ' ' + Object.values(f.metadata).join(' ')).toLocaleLowerCase('pt-BR');
       return hay.includes(state.search);
@@ -854,7 +856,7 @@
   }
   function install(parsed) {
     resetDetail();
-    state.iconFilter = '';
+    state.iconFilter = '';state.typeFilter='';
     for (const url of state.iconUrls) URL.revokeObjectURL(url);
     state.iconUrls = parsed.iconUrls || [];
     state.features = parsed.features;
@@ -1046,7 +1048,7 @@
     $('legendEntries').hidden = expanded;
     $('legendFooter').hidden = expanded;
   });
-  $('legendClear').addEventListener('click', () => { state.iconFilter = ''; updateFilters(false); });
+  $('legendClear').addEventListener('click', () => { state.iconFilter = ''; state.typeFilter='';updateFilters(false); });
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
   $('demoButton').addEventListener('click', loadDemo);
