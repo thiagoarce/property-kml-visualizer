@@ -556,14 +556,15 @@
     }else {
       appendMetric(grid,'Capacidade',fact(facts,'Capacidade','Capacidade primária','Capacidade do auditório'));
       appendMetric(grid,'Congregações',fact(facts,'Congregações locais','Qtd Congregações','Quantidade de congregações'));
-      appendMetric(grid,'Uso',fact(facts,'Uso'));
+      const uso=fact(facts,'Uso');
+      if(/^\d{1,3}(?:[.,]\d+)?\s*%$/.test(uso))appendMetric(grid,'Uso',uso);
       appendMetric(grid,'Área do local',fact(facts,'Área do Local'));
       appendMetric(grid,'Próxima reforma',fact(facts,'Ano da próxima reforma','Próxima reforma'));
       appendMetric(grid,'Valor do prédio',fact(facts,'Valor do Prédio'));
     }
     if(grid.children.length)wrapper.appendChild(grid);
     const alert=fact(facts,'Casos Aberto','Caso Aberto','Condição do Prédio','Descrição do Status do Local');
-    if(alert && !/^(?:nenhum|nenhuma|não|nao|sem caso)$/i.test(alert)) {
+    if(alert && !/^(?:nenhum\b|nenhuma\b|não\b|nao\b|sem caso\b)/i.test(alert)) {
       const row=elText('div','case-alert','');
       row.append(elText('span','case-alert-icon','!'),elText('span','',alert));
       wrapper.appendChild(row);
@@ -589,8 +590,8 @@
   function enhanceLocalCharts(root) {
     // Usa SOMENTE séries numéricas já presentes nas tabelas do KML.
     // Não recupera dados da API externa de gráficos nem inventa valores.
-    for(const panel of root.querySelectorAll('.tabcontent,.tab-panel,.tab-pane')) {
-      const title=(panel.getAttribute('data-kml-id') || '') + ' ' +
+    for(const panel of root.querySelectorAll('.tabcontent,.tab-panel,.tab-pane,.legacy-section[data-section]')) {
+      const title=(panel.getAttribute('data-section') || '') + ' ' +(panel.getAttribute('data-kml-id') || '') + ' ' +
         (panel.previousElementSibling?.textContent || '');
       const isGraph=/gr[aá]fic|proje|hist[oó]ric|chart/i.test(title) ||
         /gr[aá]fic|proje|hist[oó]ric/i.test(panel.textContent.slice(0,160));
@@ -739,6 +740,8 @@
     if(!pairs.length||pairs.length<Math.ceil(rows.length*.55))return false;
     // Tabelas com cabeçalhos são listas: congregações, projeções, históricos etc.
     if(cellsByRow.some(cells=>cells.some(cell=>cell.tagName==='TH')))return false;
+    // Séries históricas também podem vir sem TH: ano e valor devem seguir tabulares.
+    if(cellsByRow.filter(cells=>/^20\d{2}$/.test(cells[0]?.textContent.trim()||'')).length>=2)return false;
     const textKeys=pairs.flatMap(cells=>cells.filter((_,i)=>i%2===0).map(c=>c.textContent.trim()));
     const shortLabels=textKeys.filter(x=>x.length>0&&x.length<100).length;
     return shortLabels>=Math.ceil(textKeys.length*.65);
