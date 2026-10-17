@@ -15,7 +15,7 @@ page.on('pageerror', e => errors.push(String(e)));
 page.on('request', r => { if (/^https?:/.test(r.url())) requests.push(r.url()); });
 try {
   await page.goto(url);
-  await page.waitForFunction(() => document.getElementById('totalCount').textContent.trim() === '8');
+  await page.locator('#welcomeScreen').waitFor();
   await page.locator('#upload').setInputFiles(kmz);
   await page.locator('#totalCount').filter({ hasText: '3' }).waitFor({ timeout: 20000 });
   await page.locator('[data-workspace="legenda"]').click();
