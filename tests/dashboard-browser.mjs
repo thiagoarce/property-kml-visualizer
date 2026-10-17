@@ -46,7 +46,8 @@ try{
  assert.ok(await page.locator('.property-badge').filter({hasText:'Próprio'}).count());
  assert.ok(await page.locator('.metric-card').filter({hasText:'250'}).count());
  assert.ok(await page.locator('.local-chart-svg').count(),'Série anual presente no KML deve renderizar localmente');
- await page.locator('#legendEntries .meaning-line').first().click();
+ await page.locator('[data-workspace="filtros"]').click();
+ await page.locator('#propertyFilter').selectOption('hall');
  await page.locator('#filteredCount').filter({hasText:'1'}).waitFor();
  await page.locator('#upload').setInputFiles(input('SRs - Vendas.kml',
   '<Folder><name>Imóvel à venda</name>'+place('<table><tr><td>Preço de venda</td><td>R$ 200.000,00</td></tr>'+
@@ -54,6 +55,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#fileName').textContent.trim()==='SRs - Vendas.kml');
  assert.equal(await page.locator('body').getAttribute('data-map-profile'),'vendas');
  assert.ok(await page.locator('.meaning-group-title').filter({hasText:'SITUAÇÃO DA VENDA'}).count());
+ await page.locator('[data-workspace="locais"]').click();
  await page.locator('.result').first().click();
  assert.ok(await page.locator('.metric-major').filter({hasText:'R$ 200.000,00'}).count());
  assert.equal(externals.length,0);
