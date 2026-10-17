@@ -116,8 +116,8 @@ def main():
 
     page = must_replace(
         page,
-        "https://tile.openstreetmap.org https://services.arcgisonline.com https://jwsite.sharepoint.com; connect-src 'none'; font-src 'none';",
-        "https://tiles.openfreemap.org https://assets.openfreemap.com https://services.arcgisonline.com https://jwsite.sharepoint.com; "
+        "https://tile.openstreetmap.org https://services.arcgisonline.com https://grafico-api.onrender.com https://jwsite.sharepoint.com; connect-src 'none'; font-src 'none';",
+        "https://tiles.openfreemap.org https://assets.openfreemap.com https://services.arcgisonline.com https://grafico-api.onrender.com https://jwsite.sharepoint.com; "
         "connect-src https://tiles.openfreemap.org https://assets.openfreemap.com; "
         "worker-src blob:; child-src blob:; font-src 'none';"
     )
