@@ -926,11 +926,13 @@
       }
       if(metrics.children.length){
         view.prepend(metrics);
-        // Remove apenas linhas simples repetidas dos cartões, sem descartar séries.
+        // Remove linhas redundantes, mas mantém qualquer série histórica real.
         for(const node of [...view.querySelectorAll('p,div,span')].reverse()){
           if(node.closest('.graph-kpis,.graph-notice,.local-chart')||node.children.length>1)continue;
           const value=node.textContent.replace(/\s+/g,' ').trim();
-          if(keys.some(key=>new RegExp('^'+key.replace(/[()]/g,'\\      if(metrics.children.length)view.prepend(metrics);')+'\\s*[:–-]?\\s*\\d{1,6}
+          if(keys.some(key=>new RegExp('^'+key.replaceAll('(','\\(').replaceAll(')','\\)')+'\\s*[:–-]?\\s*\\d{1,6}$','i').test(value)))node.remove();
+        }
+      }
     }
   }
   function renderDomainDetail(feature,body) {
