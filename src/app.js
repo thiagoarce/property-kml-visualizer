@@ -2053,6 +2053,8 @@
     }
     const tamanhoMB = (file.size / (1024 * 1024)).toFixed(1);
     const previousName = state.fileName;
+    viewPersistenceEnabled=false;
+    clearTimeout(viewTimer);
     $('loadingName').textContent = file.name;
     $('loadingScreen').hidden = false;
     $('loadingStage').textContent = 'Lendo arquivo · ' + tamanhoMB + ' MB';
@@ -2084,18 +2086,22 @@
         kmzInfo.zip = null;
       }
       $('loadingStage').textContent = 'Montando o mapa…';
-      install(result);
+      restoring=true;
+      try{install(result,{view:options.view||null,skipFit:!!options.restored});}
+      finally{restoring=false;}
       $('welcomeScreen').hidden = true;
       document.body.classList.remove('is-welcome');
       // Atualiza a área do Leaflet depois de revelar a interface.
       requestAnimationFrame(() => map.invalidateSize());
-      if(options.restored)showSessionNote(options.savedAt);
-      else {
-        $('sessionNote').hidden=true;
-        // Guardar o arquivo original mantém as imagens/ícones KMZ na próxima sessão.
-        cacheAction('put',{file,fileName:file.name,mime:file.type,savedAt:Date.now()})
-          .catch(err=>{console.warn('Não foi possível guardar o último mapa:',err);showToast('Mapa aberto, mas sem permissão para salvar uma cópia local.');});
-      }
+      if(options.restored) {
+        showSessionNote(options.savedAt,false);
+      }else $('sessionNote').hidden=true;
+      // O arquivo original e o resultado processado são guardados após a primeira abertura.
+      // Mesmo na migração de caches antigos, a segunda abertura será acelerada.
+      saveOriginalAndPrepared(file,result).catch(err=>{
+        console.warn('Não foi possível salvar o mapa para a próxima sessão:',err);
+        showToast('Mapa aberto, mas o navegador não permitiu guardar o arquivo localmente.');
+      });
     } catch (err) {
       $('fileName').textContent = previousName || '—';
       const message='Não foi possível abrir o arquivo: ' + (err && err.message ? err.message : String(err));
@@ -2129,7 +2135,9 @@
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
   $('forgetMap').addEventListener('click',async()=>{
-    try{await cacheAction('delete');$('sessionNote').hidden=true;showToast('Cópia local apagada. O mapa atual permanece aberto.');}
+    viewPersistenceEnabled=false;
+    clearTimeout(viewTimer);
+    try{await cacheAction('clear');$('sessionNote').hidden=true;showToast('Cópia e preferências locais apagadas. O mapa atual permanece aberto.');}
     catch(err){showToast('Não foi possível apagar a cópia local.');}
   });
 
@@ -2245,6 +2253,20 @@
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
   $('statusTitle').textContent = 'Brasil · mapa vetorial local';
+  // Estado visual é leve e fica em chave separada: mover o mapa não regrava o KMZ.
+  map.on('moveend zoomend',queueViewSave);
+  for(const id of ['search','groups','question','stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy',
+                   'showSidebar','showLegend','showMapStatus','showMetrics','showEmptyFields','mapStyle']){
+    $(id).addEventListener(id==='search'||id==='question'?'input':'change',queueViewSave);
+  }
+  for(const button of document.querySelectorAll('.workspace-tab'))button.addEventListener('click',queueViewSave);
+  for(const button of ['legendClear','clearAdvanced','askButton'])$(button).addEventListener('click',()=>setTimeout(queueViewSave,0));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='hidden'&&viewPersistenceEnabled&&!restoring){
+      clearTimeout(viewTimer);
+      cacheAction('put',captureView(),VIEW_KEY).catch(()=>{});
+    }
+  });
   // Tenta restaurar somente após criar controles e eventos.
   restoreLastFile();
 })();
