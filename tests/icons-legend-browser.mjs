@@ -32,6 +32,7 @@ try {
   await page.locator('#legendClear').click();
   await page.locator('#filteredCount').filter({ hasText: '3' }).waitFor();
   await page.locator('#upload').setInputFiles(kml);
+  await page.locator('#fileName').filter({ hasText: 'estilos-ficticios.kml' }).waitFor({ timeout: 20000 });
   await page.locator('#totalCount').filter({ hasText: '3' }).waitFor();
   assert.equal(await page.locator('#legendEntries img.kml-icon-img').count(), 0, 'KML isolado não deve carregar o href do KMZ');
   assert.equal(await page.locator('#legendEntries .legend-entry').count(), 2);
