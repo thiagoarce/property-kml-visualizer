@@ -75,6 +75,8 @@ jobs:
         run: node tests/kmz-browser-smoke.mjs
       - name: Verificar ícones internos e legenda local
         run: node tests/icons-legend-browser.mjs
+      - name: Validar perfis SRs e Vendas sem envio externo
+        run: node tests/srs-vendas-browser.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: Visualizador-KML-OpenFreeMap-file-test
