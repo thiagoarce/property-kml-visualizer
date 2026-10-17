@@ -176,6 +176,92 @@
   function iconKey(feature) {
     return [feature.color || '#1682a2', feature.iconKind || 'circle', feature.iconHref || ''].join('|');
   }
+
+  const SEMANTIC_TYPES = {
+    hall: 'Salão do Reino / local de reunião', empty: 'SR vazio (sem auditório)',
+    residence: 'Residência', plot: 'Terreno', sale: 'Imóvel à venda',
+    planned: 'Aprovado para futura venda', rented: 'Local alugado sem auditório',
+    interdicted: 'SR interditado', other: 'Outros imóveis'
+  };
+  function getKmlStylePart(node, styles, styleMaps, partName, depth = 0) {
+    if (!node || depth > 6) return null;
+    const inline = child(node, 'Style') || (node.localName === 'Style' ? node : null);
+    if (inline && child(inline, partName)) return child(inline, partName);
+    const ref = directText(node, 'styleUrl').replace(/^.*#/, '');
+    if (ref && styles.has(ref)) return getKmlStylePart(styles.get(ref), styles, styleMaps, partName, depth + 1);
+    if (ref && styleMaps.has(ref)) {
+      const pair = kids(styleMaps.get(ref), 'Pair');
+      const normal = pair.find(p => directText(p, 'key') === 'normal') || pair[0];
+      return getKmlStylePart(normal, styles, styleMaps, partName, depth + 1);
+    }
+    return null;
+  }
+  function identifyProperty(feature) {
+    const href = String(feature.iconHref || '').toLocaleLowerCase('pt-BR');
+    const path = feature.path.join(' / ').toLocaleLowerCase('pt-BR');
+    const head = feature.description.slice(0, 19000).replace(/<[^>]*>/g, ' ').toLocaleLowerCase('pt-BR');
+    // Primeiro as categorias explicitas no estilo ou nas pastas. Não classificar por cor.
+    const candidate = (href + ' ' + path + ' ' + head);
+    if (/interditad/.test(candidate)) return 'interdicted';
+    if (/aprovad[oa].{0,25}futur[ao].{0,12}venda/.test(candidate)) return 'planned';
+    if (/(?:terreno|land|plot).{0,25}(?:constru[çc][aã]o|construction)/.test(candidate) || /terreno|ground-overlay|plot[-_.]/.test(href)) return 'plot';
+    if (/resid[eê]ncia|residence|residential/.test(candidate)) return 'residence';
+    if (/sr vazio|sal[aã]o vazio|sem audit[oó]rio/.test(candidate)) return 'empty';
+    if (/local alugado sem audit[oó]rio/.test(candidate)) return 'rented';
+    if (/outros im[oó]veis|outro im[oó]vel/.test(candidate)) return 'other';
+    if (/im[oó]vel.{0,18}venda|for.?sale/.test(candidate)) return 'sale';
+    // Não deduzir condição de venda de uma casa comum; hall é o formato padrão SR.
+    return 'hall';
+  }
+  function parseKmlColorLabel(node, styles, styleMaps) {
+    const label = getKmlStylePart(node, styles, styleMaps, 'LabelStyle');
+    return label ? xmlColor(directText(label,'color')) : null;
+  }
+  function getSaleStatus(feature) {
+    const str = (feature.path.join(' / ') + ' ' + feature.description.slice(0, 4000)).toLocaleLowerCase('pt-BR');
+    if (/aprovad[oa].{0,25}futur[ao].{0,12}venda/.test(str)) return 'Aprovado para futura venda';
+    if (/im[oó]vel.{0,18}venda|pre[çc]o de venda/.test(str)) return 'Imóvel à venda';
+    return '';
+  }
+  function getCaseStatus(feature) {
+    const s = feature.description.slice(0, 14000).toLocaleLowerCase('pt-BR');
+    if (/grandes projetos|grande projeto/.test(s)) return { label:'Grandes Projetos',color:'#c92632',level:'danger' };
+    if (/pequena reforma/.test(s)) return { label:'Pequena Reforma',color:'#1db2c9',level:'info' };
+    if (/caso aberto.{0,60}aluguel/.test(s)) return { label:'Aluguel',color:'#8c959c',level:'muted' };
+    return null;
+  }
+  function visualMeaning(feature) {
+    // Mapeamentos de negócio vêm da descrição/pastas e estilos KML, não de cores aleatórias.
+    const type = feature.propertyType || 'hall';
+    const sale = state.profile === 'vendas' ? getSaleStatus(feature) : '';
+    const caseInfo = state.profile === 'srs' ? getCaseStatus(feature) : null;
+    return { type, typeName: SEMANTIC_TYPES[type] || SEMANTIC_TYPES.hall, sale, caseInfo };
+  }
+  function escapeSvgText(text) {
+    return String(text).replace(/[&<>"']/g, v => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[v]));
+  }
+  function semanticSvg(feature, size = 30) {
+    const type = feature.propertyType || 'hall';
+    const fill = /^#[0-9a-f]{6}$/i.test(feature.color) ? feature.color : '#32b35e';
+    const stroke = '#172a31';
+    const paths = {
+      hall: '<path d="M4 13 16 3 28 13V29H4Z"/><path d="M4 13h24"/>',
+      empty: '<path d="M4 13 16 3 28 13V29H4Z"/><path d="M7 18h18M7 23h18"/>',
+      residence: '<path d="M4 13 16 3 28 13V29H4Z"/><path d="M13 29v-10h6v10M7 17h4v4H7M21 17h4v4h-4"/>',
+      plot: '<rect x="5" y="5" width="22" height="22" rx="1"/>',
+      rented: '<circle cx="16" cy="16" r="12"/><path d="M16 9v14M12 14h8"/>',
+      sale: '<circle cx="16" cy="16" r="12"/><text x="16" y="21" font-size="16" text-anchor="middle" font-weight="900" stroke="none" fill="#fff">$</text>',
+      planned: '<circle cx="16" cy="16" r="12"/><text x="16" y="21" font-size="16" text-anchor="middle" font-weight="900" stroke="none" fill="#fff">$</text>',
+      other: '<path d="M16 4 30 28H2Z"/>',
+      interdicted: '<path d="M16 3 30 29H2Z"/><path d="M16 11v8M16 23v1" stroke="#fff" stroke-width="3"/>'
+    };
+    let inner = paths[type] || paths.hall;
+    if (type === 'sale' || type === 'planned') inner = inner.replace(/fill="#fff"/g,'fill="#fff"');
+    const border = type === 'planned' ? '#c8242f' : stroke;
+    return '<svg class="semantic-svg" viewBox="0 0 32 32" width="' + size + '" height="' + size +
+      '" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g fill="' + fill + '" stroke="' + border +
+      '" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round">' + inner + '</g></svg>';
+  }
   function parseKml(source, fileName) {
     const xml = new DOMParser().parseFromString(source, 'application/xml');
     if (xml.getElementsByTagName('parsererror').length) throw new Error('KML com XML inválido. Confira se o arquivo foi gerado corretamente.');
@@ -200,7 +286,8 @@
         if (d.localName === 'Data' && d.getAttribute('name')) metadata[d.getAttribute('name')] = directText(d, 'value');
       }
       const points = [...n.getElementsByTagName('*')].filter(x => x.localName === 'Point');
-      const common = { name, path, color, description, metadata, iconHref: href, iconKind, iconScale: iconInfo.scale || 1, styleName };
+      const labelColor = parseKmlColorLabel(n, styles, styleMaps);
+      const common = { name, path, color, labelColor, description, metadata, iconHref: href, iconKind, iconScale: iconInfo.scale || 1, styleName };
       for (const point of points) {
         const coords = parseCoordinates(directText(point, 'coordinates'));
         if (coords.length) features.push({ ...common, pos: coords[0], id: features.length });
@@ -359,6 +446,17 @@
     return span;
   }
   function makePin(feature) {
+    if (state.profile !== 'generic') {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'semantic-pin';
+      wrapper.innerHTML = semanticSvg(feature, 30);
+      const span = document.createElement('span');
+      span.className = 'semantic-code';
+      span.textContent = feature.name.match(/\b(?:BRA)?\d{3,6}[#*]?\b/i)?.[0] || feature.name.slice(0, 16);
+      span.style.setProperty('--label-color',feature.labelColor || '#f8fafc');
+      wrapper.appendChild(span);
+      return L.divIcon({className:'map-pin map-pin-semantic',html:wrapper.outerHTML,iconSize:[32,34],iconAnchor:[16,17]});
+    }
     const scale = Math.min(2.1, Math.max(.6, feature.iconScale || 1));
     const size = Math.round(22 * scale);
     const wrapper = document.createElement('div');
@@ -419,7 +517,8 @@
       const item = document.createElement('button');
       item.type = 'button'; item.className = 'result';
       const dot = document.createElement('i'); dot.className = 'result-dot';
-      dot.appendChild(markerSymbol(mark.iconKind || 'circle', mark.color, mark.iconUrl));
+      if (state.profile === 'generic') dot.appendChild(markerSymbol(mark.iconKind || 'circle', mark.color, mark.iconUrl));
+      else dot.innerHTML = semanticSvg(mark, 21);
       const info = document.createElement('span'); info.className = 'result-info';
       const strong = document.createElement('strong'); strong.textContent = mark.name;
       const sub = document.createElement('small'); sub.textContent = mark.path.join(' / ') || 'Sem pasta';
@@ -542,7 +641,8 @@
       btn.title = f.styleName ? 'Estilo KML: ' + f.styleName : 'Símbolo encontrado no arquivo';
       const icon = document.createElement('span');
       icon.className = 'legend-icon';
-      icon.appendChild(markerSymbol(f.iconKind || 'circle', f.color, f.iconUrl));
+      if (state.profile === 'generic') icon.appendChild(markerSymbol(f.iconKind || 'circle', f.color, f.iconUrl));
+      else icon.innerHTML = semanticSvg(f, 22);
       const name = document.createElement('span');
       name.className = 'legend-name';
       const kindNames = { circle: 'círculo', square: 'quadrado', diamond: 'losango',
@@ -552,9 +652,8 @@
         : '';
       const pathText = f.path.join(' / ');
       const salesStatus = f.path.find(x => /^(?:SR (?:em uso|vazio)|(?:im[oó]vel|propriedade) (?:à|a) venda|(?:resid[eê]ncia|terreno))$/i.test(x.trim()));
-      name.textContent = state.profile === 'vendas' && salesStatus
-        ? salesStatus
-        : (styleLabel || (colorName(f.color) + ' · ' + (kindNames[f.iconKind] || 'círculo')));
+      name.textContent = state.profile === 'generic' ? (styleLabel || (colorName(f.color) + ' · ' + (kindNames[f.iconKind] || 'círculo'))) :
+        ((SEMANTIC_TYPES[f.propertyType] || SEMANTIC_TYPES.hall) + ' · ' + (state.profile === 'srs' ? colorName(f.color) : (getSaleStatus(f) || colorName(f.color))));
       const count = document.createElement('span');
       count.className = 'legend-item-count';
       count.textContent = item.count.toLocaleString('pt-BR');
@@ -593,6 +692,7 @@
     state.shapes = parsed.shapes;
     state.fileName = parsed.fileName;
     state.profile = mapProfile(parsed.fileName, parsed.features);
+    if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
     showProfile();
     $('fileName').textContent = parsed.fileName;
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
