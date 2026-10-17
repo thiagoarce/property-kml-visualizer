@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false };
+  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false, iconFilter: '', iconUrls: [] };
   const ALLOWED_TAGS = new Set('a b blockquote br button caption code dd div dl dt em h1 h2 h3 h4 h5 h6 hr i li ol p pre small span strong sub sup table tbody td th thead tr u ul'.split(' '));
   const BLOCKED_TAGS = new Set('script style iframe svg object embed form input select textarea link meta video audio canvas picture source'.split(' '));
   // Teto preventivo, nao uma limitacao do KML ou do OpenFreeMap.
@@ -113,6 +113,69 @@
     }
     return null;
   }
+  const ICON_SHAPES = new Set(['circle', 'square', 'diamond', 'triangle', 'star', 'pushpin']);
+  function iconShapeFromHref(href) {
+    const name = String(href || '').toLowerCase().split(/[/?#]/).pop() || '';
+    if (/star/.test(name)) return 'star';
+    if (/diamond/.test(name)) return 'diamond';
+    if (/triangle/.test(name)) return 'triangle';
+    if (/square|rect/.test(name)) return 'square';
+    if (/pushpin|paddle|pin/.test(name)) return 'pushpin';
+    return 'circle';
+  }
+  function colorFromHref(href) {
+    const basename = String(href || '').toLowerCase().split(/[/?#]/).pop() || '';
+    const name = basename.replace(/^(?:icon|marker)[-_]?/, '');
+    const colors = [
+      [/^(?:red|vermelho|r)[-_.]/, '#d44545'],
+      [/^(?:grn|green|verde)[-_.]/, '#269965'],
+      [/^(?:ylw|yellow|amarelo)[-_.]/, '#d7aa16'],
+      [/^(?:orange|org|laranja)[-_.]/, '#df8730'],
+      [/^(?:blue|blu|azul)[-_.]/, '#2984bd'],
+      [/^(?:purple|pur|roxo)[-_.]/, '#894db4'],
+      [/^(?:pink|pnk|rosa)[-_.]/, '#c55d8c'],
+      [/^(?:wht|white|branco)[-_.]/, '#e4e8e7']
+    ];
+    return colors.find(x => x[0].test(name))?.[1] || null;
+  }
+  function colorName(color) {
+    const match = /^#([0-9a-f]{6})$/i.exec(String(color || ''));
+    if (!match) return 'Sem cor definida';
+    const rgb = [1, 3, 5].map(i => parseInt(match[1].slice(i - 1, i + 1), 16));
+    const [r, g, b] = rgb;
+    const max = Math.max(...rgb), min = Math.min(...rgb);
+    if (max - min < 25) return 'Cinza';
+    if (r > g * 1.23 && r > b * 1.2) return 'Vermelho';
+    if (r > 110 && g > 80 && r > b * 1.4 && g > b * 1.3) return g > r * .8 ? 'Amarelo' : 'Laranja';
+    if (g > r * 1.24 && g > b * 1.04) return 'Verde';
+    if (b > r * 1.23 && b > g * 1.1) return 'Azul';
+    if (r > g * 1.18 && b > g * 1.18) return 'Roxo';
+    if (b >= r && b >= g * .85 && g > r * 1.1) return 'Azul';
+    return 'Cor do KML';
+  }
+  function styleIconInfo(node, styles, styleMaps, depth = 0) {
+    if (depth > 5 || !node) return null;
+    const inline = child(node, 'Style') || (node.localName === 'Style' ? node : null);
+    const iconStyle = inline ? child(inline, 'IconStyle') : null;
+    if (iconStyle) {
+      const href = directText(child(iconStyle, 'Icon'), 'href');
+      const color = xmlColor(directText(iconStyle, 'color')) || colorFromHref(href) || null;
+      const scaleRaw = Number(directText(iconStyle, 'scale'));
+      const scale = Number.isFinite(scaleRaw) && scaleRaw > 0 ? Math.min(2.1, Math.max(.6, scaleRaw)) : 1;
+      return { href, color, scale, kind: iconShapeFromHref(href) };
+    }
+    const ref = directText(node, 'styleUrl').replace(/^.*#/, '');
+    if (ref && styles.has(ref)) return styleIconInfo(styles.get(ref), styles, styleMaps, depth + 1);
+    if (ref && styleMaps.has(ref)) {
+      const pair = kids(styleMaps.get(ref), 'Pair');
+      const normal = pair.find(p => directText(p, 'key') === 'normal') || pair[0];
+      return normal ? styleIconInfo(normal, styles, styleMaps, depth + 1) : null;
+    }
+    return null;
+  }
+  function iconKey(feature) {
+    return [feature.color || '#1682a2', feature.iconKind || 'circle', feature.iconHref || ''].join('|');
+  }
   function parseKml(source, fileName) {
     const xml = new DOMParser().parseFromString(source, 'application/xml');
     if (xml.getElementsByTagName('parsererror').length) throw new Error('KML com XML inválido. Confira se o arquivo foi gerado corretamente.');
@@ -127,13 +190,17 @@
     function parsePlacemark(n, path) {
       const name = directText(n, 'name') || 'Local sem nome';
       const description = directText(n, 'description');
-      const color = styleColor(n, styles, styleMaps) || '#1682a2';
+      const iconInfo = styleIconInfo(n, styles, styleMaps) || {};
+      const color = styleColor(n, styles, styleMaps) || iconInfo.color || '#1682a2';
+      const href = iconInfo.href || '';
+      const styleName = directText(n, 'styleUrl').replace(/^.*#/, '');
+      const iconKind = iconInfo.kind || 'circle';
       const metadata = {};
       for (const d of n.getElementsByTagName('*')) {
         if (d.localName === 'Data' && d.getAttribute('name')) metadata[d.getAttribute('name')] = directText(d, 'value');
       }
       const points = [...n.getElementsByTagName('*')].filter(x => x.localName === 'Point');
-      const common = { name, path, color, description, metadata };
+      const common = { name, path, color, description, metadata, iconHref: href, iconKind, iconScale: iconInfo.scale || 1, styleName };
       for (const point of points) {
         const coords = parseCoordinates(directText(point, 'coordinates'));
         if (coords.length) features.push({ ...common, pos: coords[0], id: features.length });
@@ -225,13 +292,32 @@
     });
     buttons[0].click();
   }
-  function makePin(color) {
+  function markerSymbol(kind, color, imageUrl) {
+    const span = document.createElement('span');
+    if (imageUrl) {
+      const img = document.createElement('img');
+      img.src = imageUrl; img.alt = ''; img.className = 'kml-icon-img';
+      span.className = 'symbol symbol-image';
+      span.appendChild(img);
+    } else {
+      span.className = 'symbol symbol-' + (ICON_SHAPES.has(kind) ? kind : 'circle');
+      span.style.setProperty('--pin-color', /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#1682a2');
+    }
+    return span;
+  }
+  function makePin(feature) {
+    const scale = Math.min(2.1, Math.max(.6, feature.iconScale || 1));
+    const size = Math.round(22 * scale);
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(markerSymbol(feature.iconKind || 'circle', feature.color, feature.iconUrl));
     return L.divIcon({
       className: 'map-pin',
-      html: '<span style="background:' + color + '"></span>',
-      iconSize: [20, 20], iconAnchor: [10, 10]
+      html: wrapper.innerHTML,
+      iconSize: [size, size],
+      iconAnchor: [Math.round(size / 2), Math.round(size / 2)]
     });
   }
+
   function showToast(message) {
     const el = $('toast');
     el.textContent = message;
@@ -279,7 +365,8 @@
     for (const mark of state.filtered.slice(0, limit)) {
       const item = document.createElement('button');
       item.type = 'button'; item.className = 'result';
-      const dot = document.createElement('i'); dot.className = 'result-dot'; dot.style.backgroundColor = mark.color;
+      const dot = document.createElement('i'); dot.className = 'result-dot';
+      dot.appendChild(markerSymbol(mark.iconKind || 'circle', mark.color, mark.iconUrl));
       const info = document.createElement('span'); info.className = 'result-info';
       const strong = document.createElement('strong'); strong.textContent = mark.name;
       const sub = document.createElement('small'); sub.textContent = mark.path.join(' / ') || 'Sem pasta';
@@ -305,7 +392,7 @@
     markers.clearLayers(); shapes.clearLayers();
     const batch = [];
     for (const f of state.filtered) {
-      const marker = L.marker(f.pos, { icon: makePin(f.color), keyboard: true, title: f.name });
+      const marker = L.marker(f.pos, { icon: makePin(f), keyboard: true, title: f.name });
       marker.bindTooltip(f.name, { direction: 'top', offset: [0, -9] });
       marker.on('click', () => showDetail(f));
       f.marker = marker;
