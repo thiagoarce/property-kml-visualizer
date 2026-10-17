@@ -19,7 +19,7 @@ try {
   assert.equal(network.length, 0, 'Abrir o mapa com offline ativo não pode acessar a rede');
   const accept = await page.locator('#upload').getAttribute('accept');
   assert.ok(accept.includes('.kmz'), 'O pacote deve permitir seleção de KMZ');
-  assert.ok(await page.locator('#dropzone').innerText().then(s => s.includes('KMZ')), 'Interface deve mostrar KMZ');
+  assert.ok(await page.locator('#welcomeDrop').innerText().then(s => s.includes('KMZ')), 'Interface deve mostrar KMZ');
   await page.locator('#upload').setInputFiles(kmz);
   await page.locator('#totalCount').filter({ hasText: '4' }).waitFor({ timeout: 20000 });
   assert.equal(await page.locator('#fileName').innerText(), 'exemplo-ficticio.kmz');
