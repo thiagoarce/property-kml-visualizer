@@ -88,6 +88,8 @@ jobs:
         run: node tests/popup-semantic-tabs-browser.mjs
       - name: Validar entrada e navegação produtiva
         run: node tests/import-workspace-browser.mjs
+      - name: Validar seletor nativo KML e KMZ em tela touch
+        run: node tests/mobile-file-picker-browser.mjs
       - name: Validar persistência local e dados do popup
         run: node tests/last-session-details-browser.mjs
       - name: Validar cache processado, reabertura e ícones KMZ
