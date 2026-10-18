@@ -468,3 +468,20 @@ body.is-welcome>.topbar,body.is-welcome>.layout{visibility:hidden}
 .api-graph-calculations td:last-child{text-align:right;font-weight:750;color:#214b5e}
 .api-graph-calc-note{font-size:10px;color:#6b8792;padding:8px 12px 12px;line-height:1.5}
 @media(max-width:760px){.api-graph-toolbar{padding:12px}.api-graph-card{padding:10px}.api-graph-options{grid-template-columns:1fr 1fr}}
+
+
+/* iOS e navegadores móveis: arquivo selecionado por toque nativo no input,
+   sem .click() em input oculto (frequentemente bloqueado no Quick Look). */
+.native-file-target{position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.native-file-target .native-file-control{
+  display:block!important;position:absolute;inset:0;width:100%;height:100%;
+  z-index:1;opacity:0;cursor:pointer;font-size:16px;border:0;padding:0;
+}
+.native-file-target:focus-within{outline:3px solid #78c6db;outline-offset:3px}
+.native-file-switch{display:inline-flex;align-items:center;justify-content:center}
+.mobile-files-help{display:none}
+@media(max-width:760px){
+  .welcome-card{padding:27px 20px 30px}
+  .welcome-drop{min-height:150px}
+  .mobile-files-help{display:block!important;color:#b6d4df!important;font-size:11px!important;line-height:1.55!important;margin:13px 0 0!important}
+}
