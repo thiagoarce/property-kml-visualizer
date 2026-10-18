@@ -3022,29 +3022,60 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     renderMap(fit);
     renderLegend();
     updateAnalysisView();
+    queueViewSave();
   }
-  function install(parsed) {
+  function install(parsed, opts={}) {
     resetDetail();
-    state.iconFilter = '';state.typeFilter='';
+    state.iconFilter = opts.view?.iconFilter || '';
+    state.typeFilter = opts.view?.typeFilter || '';
     for (const url of state.iconUrls) URL.revokeObjectURL(url);
     state.iconUrls = parsed.iconUrls || [];
     state.features = parsed.features;
     state.shapes = parsed.shapes;
     state.fileName = parsed.fileName;
     state.profile = mapProfile(parsed.fileName, parsed.features);
-    if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
-    for(const f of state.features)enrichFeature(f);
-    for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'])$(name).value='';
-    $('question').value='';
+    if(!opts.preprocessed){
+      if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
+      for(const f of state.features)enrichFeature(f);
+    }
+    if(!opts.view)for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'])$(name).value='';
+    $('question').value=opts.view?.question||'';
     $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
     buildAnalysisOptions();
     showProfile();
     $('fileName').textContent = parsed.fileName;
     $('totalCount').textContent = parsed.features.length.toLocaleString('pt-BR');
     $('currentMapName').textContent = parsed.fileName;
-    $('search').value = ''; state.search = ''; state.group = '';
-    renderGroups(); updateFilters(true);
-    setWorkspace('locais');
+    $('search').value=opts.view?.search||'';
+    state.search='';state.group='';
+    renderGroups();
+    if(opts.view) {
+      const v=opts.view;
+      $('groups').value=v.group||'';
+      for(const key of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy']){
+        $(key).value=v.filters?.[key]||'';
+      }
+      for(const key of ['showLegend','showMapStatus','showMetrics','showEmptyFields']){
+        if(typeof v.display?.[key]==='boolean')$(key).checked=v.display[key];
+      }
+      $('mapLegend').hidden=!$('showLegend').checked;
+      document.querySelector('.map-status').hidden=!$('showMapStatus').checked;
+      if(['liberty','positron','bright','dark','satellite'].includes(v.mapStyle))$('mapStyle').value=v.mapStyle;
+      // Segurança: mesmo que o usuário tivesse tiles online, a reabertura não os ativa.
+      $('osmToggle').checked=false;
+      if(typeof v.display?.showSidebar==='boolean'){
+        document.body.classList.toggle('sidebar-collapsed',!v.display.showSidebar);
+        $('showSidebar').checked=v.display.showSidebar;
+        $('sidebarToggle').textContent=v.display.showSidebar?'Ocultar painel':'Mostrar painel';
+        $('sidebarToggle').setAttribute('aria-expanded',String(v.display.showSidebar));
+      }
+    }
+    updateFilters(!opts.skipFit);
+    setWorkspace(opts.view?.workspace||'locais');
+    if(opts.view?.center&&Array.isArray(opts.view.center)&&opts.view.center.length===2&&
+      opts.view.center.every(Number.isFinite)&&Number.isFinite(opts.view.zoom)){
+      map.setView(opts.view.center,Math.max(2,Math.min(19,opts.view.zoom)),{animate:false});
+    }
     if (!state.features.length) showToast('KML válido, mas sem marcadores Point. Alguns elementos podem ser não pontuais.');
   }
   function decodeKmlBytes(bytes) {
@@ -3092,6 +3123,7 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     // Só extrai imagens explicitamente usadas em IconStyle, não fotos anexadas.
     const images = new Map();
     const urls = [];
+    const iconAssets = [];
     const lookup = new Map(Object.keys(zip.files).map(name => [name.toLowerCase(), name]));
     const folder = kmlName.replace(/\\/g, '/').split('/').slice(0, -1);
     const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
@@ -3130,9 +3162,11 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       try {
         const bytes = await entry.async('uint8array');
         if (bytes.length > limitBytes || bytes.length + totalBytes > totalLimit) continue;
-        const url = URL.createObjectURL(new Blob([bytes], { type: MIME[ext] }));
+        const blob = new Blob([bytes], { type: MIME[ext] });
+        const url = URL.createObjectURL(blob);
         totalBytes += bytes.length;
         images.set(actual, url);
+        iconAssets.push({ url, blob });
         urls.push(url);
         f.iconUrl = url;
       } catch (e) {
@@ -3140,7 +3174,107 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       }
     }
     parsed.iconUrls = urls;
+    parsed.iconAssets = iconAssets;
     // Nenhum URL externo do KML é carregado por este processo.
+  }
+  // IndexedDB guarda uma cópia do arquivo original e outra representação pronta.
+  // Incrementar CACHE_SCHEMA quando parser, classificação ou índice mudarem.
+  const CACHE_SCHEMA=1;
+  const VIEW_KEY='vista';
+  let viewPersistenceEnabled=false,viewTimer=null,restoring=false;
+  function captureView() {
+    const center=map.getCenter();
+    return {
+      center:[center.lat,center.lng],zoom:map.getZoom(),
+      search:$('search').value,group:$('groups').value,
+      iconFilter:state.iconFilter,typeFilter:state.typeFilter,
+      filters:Object.fromEntries(['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'].map(k=>[k,$(k).value])),
+      question:$('question').value,
+      workspace:document.querySelector('.workspace-tab.is-active')?.dataset.workspace||'locais',
+      mapStyle:$('mapStyle').value,
+      display:Object.fromEntries(['showSidebar','showLegend','showMapStatus','showMetrics','showEmptyFields'].map(k=>[k,$(k).checked]))
+    };
+  }
+  function queueViewSave() {
+    if(!viewPersistenceEnabled||restoring)return;
+    clearTimeout(viewTimer);
+    viewTimer=setTimeout(()=>{
+      if(viewPersistenceEnabled&&!restoring){
+        cacheAction('put',captureView(),VIEW_KEY).catch(e=>console.info('Preferências não salvas:',e));
+      }
+    },280);
+  }
+  function makeProcessedCache(parsed,file){
+    // Não gravar objetos Leaflet, listeners nem URL.createObjectURL: não são reutilizáveis.
+    const icons=parsed.iconAssets||[];
+    const keys=new Map(icons.map((item,i)=>[item.url,i]));
+    return {
+      schema:CACHE_SCHEMA,fileName:file.name,fileSize:file.size,lastModified:file.lastModified,
+      features:state.features.map(feature=>{
+        const {marker,iconUrl,...properties}=feature;
+        if(keys.has(iconUrl))properties.cachedIcon=keys.get(iconUrl);
+        return properties;
+      }),
+      shapes:parsed.shapes,
+      folders:parsed.folders||[],
+      iconBlobs:icons.map(x=>x.blob)
+    };
+  }
+  function recoverProcessedCache(saved) {
+    const p=saved?.processed;
+    if(!p||p.schema!==CACHE_SCHEMA||p.fileName!==saved.fileName||
+      p.fileSize!==saved.file.size||p.lastModified!==saved.file.lastModified||
+      !Array.isArray(p.features)||!Array.isArray(p.shapes)||!Array.isArray(p.iconBlobs)){
+      return null;
+    }
+    if(p.features.length>500000||p.shapes.length>500000||p.iconBlobs.length>2000)return null;
+    const urls=[];
+    try{
+      for(const blob of p.iconBlobs){
+        if(!(blob instanceof Blob))throw Error('Ícone inválido no cache');
+        urls.push(URL.createObjectURL(blob));
+      }
+      const features=p.features.map(f=>{
+        if(!f||!Array.isArray(f.pos)||f.pos.length!==2||
+          !f.pos.every(Number.isFinite)||!Array.isArray(f.path)||typeof f.name!=='string'){
+          throw Error('Marcador inválido no cache');
+        }
+        const {cachedIcon,...rest}=f;
+        if(Number.isInteger(cachedIcon)&&cachedIcon>=0&&cachedIcon<urls.length)rest.iconUrl=urls[cachedIcon];
+        return rest;
+      });
+      return {fileName:saved.fileName,features,shapes:p.shapes,folders:p.folders||[],iconUrls:urls};
+    }catch(e){
+      urls.forEach(url=>URL.revokeObjectURL(url));
+      console.warn('Cache pronto inválido; o KMZ original será relido:',e);
+      return null;
+    }
+  }
+  async function saveOriginalAndPrepared(file,parsed){
+    const timestamp=Date.now();
+    const prepared=makeProcessedCache(parsed,file);
+    const base={file,fileName:file.name,mime:file.type,savedAt:timestamp};
+    try{
+      await cacheAction('put',{...base,processed:prepared});
+    }catch(e){
+      console.warn('Cache processado excedeu limites ou foi bloqueado:',e);
+      // Salvamento degradado: o KMZ original continua disponível na próxima sessão.
+      await cacheAction('put',base);
+      showToast('Mapa salvo. O cache acelerado não coube no armazenamento local.');
+    }
+    viewPersistenceEnabled=true;
+    await cacheAction('put',captureView(),VIEW_KEY);
+  }
+  function showCachedMap(parsed,savedAt,view){
+    restoring=true;
+    try{
+      install(parsed,{preprocessed:true,skipFit:true,view});
+      $('welcomeScreen').hidden=true;
+      document.body.classList.remove('is-welcome');
+      requestAnimationFrame(()=>map.invalidateSize());
+      showSessionNote(savedAt,true);
+      viewPersistenceEnabled=true;
+    }finally{restoring=false;}
   }
   // Persistência local no perfil do navegador, sem serviços externos.
   const MAP_DB='planejamento-ultimo-mapa-v1';
@@ -3154,13 +3288,13 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       req.onblocked=()=>reject(Error('Armazenamento bloqueado'));
     });
   }
-  async function cacheAction(mode,record){
+  async function cacheAction(mode,record,key='ultimo'){
     const db=await mapStorage();
     try {
       return await new Promise((resolve,reject)=>{
         const tx=db.transaction('arquivos',mode==='get'?'readonly':'readwrite');
         const store=tx.objectStore('arquivos');
-        const req=mode==='get'?store.get('ultimo'):mode==='delete'?store.delete('ultimo'):store.put(record,'ultimo');
+        const req=mode==='get'?store.get(key):mode==='delete'?store.delete(key):mode==='clear'?store.clear():store.put(record,key);
         req.onsuccess=()=>{if(mode==='get')resolve(req.result);};
         tx.oncomplete=()=>{if(mode!=='get')resolve();};
         tx.onabort=()=>reject(tx.error||Error('Operação cancelada'));
@@ -3169,20 +3303,36 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
       });
     }finally{db.close();}
   }
-  function showSessionNote(savedAt){
+  function showSessionNote(savedAt,prepared=false){
     const when=new Date(savedAt);
-    $('sessionText').textContent='Da última sessão'+(Number.isFinite(when.getTime())?' · '+when.toLocaleDateString('pt-BR'):'')+'. Pode existir um KMZ mais recente.';
+    $('sessionText').textContent=(prepared?'Mapa restaurado da última sessão':'Da última sessão')+(Number.isFinite(when.getTime())?' · '+when.toLocaleDateString('pt-BR'):'')+'. Pode existir um KMZ mais recente.';
     $('sessionNote').hidden=false;
   }
   async function restoreLastFile(){
+    let saved;
     try{
-      const saved=await cacheAction('get');
+      saved=await cacheAction('get');
       if(!saved?.file||!saved.fileName)return;
+      if(!/\.(?:kml|kmz)$/i.test(saved.fileName))return;
+      const view=await cacheAction('get',null,VIEW_KEY).catch(()=>null);
+      const cached=recoverProcessedCache(saved);
+      if(cached){
+        $('loadingName').textContent=saved.fileName;
+        $('loadingStage').textContent='Restaurando o mapa já processado…';
+        $('loadingScreen').hidden=false;
+        await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
+        try{
+          showCachedMap(cached,saved.savedAt,view);
+          return;
+        }catch(e){
+          for(const url of cached.iconUrls||[])URL.revokeObjectURL(url);
+          console.warn('Falha ao usar cache processado, relendo arquivo:',e);
+        }finally{$('loadingScreen').hidden=true;}
+      }
       const file=saved.file instanceof File?saved.file:new File([saved.file],saved.fileName,{type:saved.mime||''});
-      if(!/\.(?:kml|kmz)$/i.test(file.name))return;
-      await readKml(file,{restored:true,savedAt:saved.savedAt});
+      await readKml(file,{restored:true,savedAt:saved.savedAt,view});
     }catch(err){
-      console.info('Restaurar o último mapa indisponível:',err);
+      console.info('Restaurar último mapa indisponível:',err);
     }
   }
   async function readKml(file,options={}) {
@@ -3201,6 +3351,8 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     }
     const tamanhoMB = (file.size / (1024 * 1024)).toFixed(1);
     const previousName = state.fileName;
+    viewPersistenceEnabled=false;
+    clearTimeout(viewTimer);
     $('loadingName').textContent = file.name;
     $('loadingScreen').hidden = false;
     $('loadingStage').textContent = 'Lendo arquivo · ' + tamanhoMB + ' MB';
@@ -3232,18 +3384,22 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
         kmzInfo.zip = null;
       }
       $('loadingStage').textContent = 'Montando o mapa…';
-      install(result);
+      restoring=true;
+      try{install(result,{view:options.view||null,skipFit:!!options.restored});}
+      finally{restoring=false;}
       $('welcomeScreen').hidden = true;
       document.body.classList.remove('is-welcome');
       // Atualiza a área do Leaflet depois de revelar a interface.
       requestAnimationFrame(() => map.invalidateSize());
-      if(options.restored)showSessionNote(options.savedAt);
-      else {
-        $('sessionNote').hidden=true;
-        // Guardar o arquivo original mantém as imagens/ícones KMZ na próxima sessão.
-        cacheAction('put',{file,fileName:file.name,mime:file.type,savedAt:Date.now()})
-          .catch(err=>{console.warn('Não foi possível guardar o último mapa:',err);showToast('Mapa aberto, mas sem permissão para salvar uma cópia local.');});
-      }
+      if(options.restored) {
+        showSessionNote(options.savedAt,false);
+      }else $('sessionNote').hidden=true;
+      // O arquivo original e o resultado processado são guardados após a primeira abertura.
+      // Mesmo na migração de caches antigos, a segunda abertura será acelerada.
+      saveOriginalAndPrepared(file,result).catch(err=>{
+        console.warn('Não foi possível salvar o mapa para a próxima sessão:',err);
+        showToast('Mapa aberto, mas o navegador não permitiu guardar o arquivo localmente.');
+      });
     } catch (err) {
       $('fileName').textContent = previousName || '—';
       const message='Não foi possível abrir o arquivo: ' + (err && err.message ? err.message : String(err));
@@ -3277,7 +3433,9 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
   $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
   $('openButton').addEventListener('click', () => $('upload').click());
   $('forgetMap').addEventListener('click',async()=>{
-    try{await cacheAction('delete');$('sessionNote').hidden=true;showToast('Cópia local apagada. O mapa atual permanece aberto.');}
+    viewPersistenceEnabled=false;
+    clearTimeout(viewTimer);
+    try{await cacheAction('clear');$('sessionNote').hidden=true;showToast('Cópia e preferências locais apagadas. O mapa atual permanece aberto.');}
     catch(err){showToast('Não foi possível apagar a cópia local.');}
   });
 
@@ -3393,6 +3551,20 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
   $('statusTitle').textContent = 'Brasil · mapa vetorial local';
+  // Estado visual é leve e fica em chave separada: mover o mapa não regrava o KMZ.
+  map.on('moveend zoomend',queueViewSave);
+  for(const id of ['search','groups','question','stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy',
+                   'showSidebar','showLegend','showMapStatus','showMetrics','showEmptyFields','mapStyle']){
+    $(id).addEventListener(id==='search'||id==='question'?'input':'change',queueViewSave);
+  }
+  for(const button of document.querySelectorAll('.workspace-tab'))button.addEventListener('click',queueViewSave);
+  for(const button of ['legendClear','clearAdvanced','askButton'])$(button).addEventListener('click',()=>setTimeout(queueViewSave,0));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='hidden'&&viewPersistenceEnabled&&!restoring){
+      clearTimeout(viewTimer);
+      cacheAction('put',captureView(),VIEW_KEY).catch(()=>{});
+    }
+  });
   // Tenta restaurar somente após criar controles e eventos.
   restoreLastFile();
 })();
