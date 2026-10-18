@@ -74,6 +74,7 @@ try{
   await page.reload();
   await page.locator('#sessionNote').waitFor({state:'visible'});
   assert.equal(await page.evaluate(()=>window.__xmlParses),0,'Reabertura deve usar dados já interpretados');
+  console.log('DEBUG RESTORE VIEW:',JSON.stringify({db:await get('vista'),input:await page.locator('#search').inputValue(),panel:await page.locator('#territoryPanel').isVisible()}));
   assert.equal(await page.locator('#search').inputValue(),'BRA9901');
   assert.equal(await page.locator('#filteredCount').innerText(),'1');
   assert.equal(await page.locator('#territoryPanel').isVisible(),true);
