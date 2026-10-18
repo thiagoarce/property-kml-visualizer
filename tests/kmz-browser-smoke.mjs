@@ -17,8 +17,9 @@ try {
   await page.goto(html);
   await page.locator('#welcomeScreen').waitFor();
   assert.equal(network.length, 0, 'Abrir o mapa com offline ativo não pode acessar a rede');
-  const accept = await page.locator('#upload').getAttribute('accept');
-  assert.ok(accept.includes('.kmz'), 'O pacote deve permitir seleção de KMZ');
+  // iOS pode esconder .kmz se o filtro accept estiver ativo. Validar por extensão no JS.
+  assert.equal(await page.locator('#upload').getAttribute('accept'), null);
+  assert.equal(await page.locator('#welcomeUpload').getAttribute('type'), 'file');
   assert.ok(await page.locator('#welcomeDrop').innerText().then(s => s.includes('KMZ')), 'Interface deve mostrar KMZ');
   await page.locator('#upload').setInputFiles(kmz);
   await page.locator('#totalCount').filter({ hasText: '4' }).waitFor({ timeout: 20000 });
