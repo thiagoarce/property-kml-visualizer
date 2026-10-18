@@ -74,6 +74,7 @@ try{
       };
     };req.onerror=()=>resolve(false);
   }),null,{timeout:12000});
+  console.log('DEBUG BEFORE RELOAD:',JSON.stringify({db:await get('vista'),input:await page.locator('#search').inputValue(),writes}));
   await page.reload();
   await page.locator('#sessionNote').waitFor({state:'visible'});
   assert.equal(await page.evaluate(()=>window.__xmlParses),0,'Reabertura deve usar dados já interpretados');
