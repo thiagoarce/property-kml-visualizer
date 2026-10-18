@@ -1725,6 +1725,7 @@
     renderMap(fit);
     renderLegend();
     updateAnalysisView();
+    queueViewSave();
   }
   function install(parsed, opts={}) {
     resetDetail();
@@ -2007,7 +2008,7 @@
   }
   function showSessionNote(savedAt,prepared=false){
     const when=new Date(savedAt);
-    $('sessionText').textContent=(prepared?'Mapa restaurado':'Da última sessão')+(Number.isFinite(when.getTime())?' · '+when.toLocaleDateString('pt-BR'):'')+'. Pode existir um KMZ mais recente.';
+    $('sessionText').textContent=(prepared?'Mapa restaurado da última sessão':'Da última sessão')+(Number.isFinite(when.getTime())?' · '+when.toLocaleDateString('pt-BR'):'')+'. Pode existir um KMZ mais recente.';
     $('sessionNote').hidden=false;
   }
   async function restoreLastFile(){
