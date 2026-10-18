@@ -2262,12 +2262,8 @@
   }
   for(const button of document.querySelectorAll('.workspace-tab'))button.addEventListener('click',queueViewSave);
   for(const button of ['legendClear','clearAdvanced','askButton'])$(button).addEventListener('click',()=>setTimeout(queueViewSave,0));
-  document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='hidden'&&viewPersistenceEnabled&&!restoring){
-      clearTimeout(viewTimer);
-      cacheAction('put',captureView(),VIEW_KEY).catch(()=>{});
-    }
-  });
+  // Não sobrescrever o último estado no evento visibilitychange: durante reload,
+  // o navegador pode já ter restaurado os valores padrão dos controles.
   // Tenta restaurar somente após criar controles e eventos.
   restoreLastFile();
 })();
