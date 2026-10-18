@@ -90,6 +90,8 @@ jobs:
         run: node tests/import-workspace-browser.mjs
       - name: Validar persistência local e dados do popup
         run: node tests/last-session-details-browser.mjs
+      - name: Validar cache processado, reabertura e ícones KMZ
+        run: node tests/processed-cache-browser.mjs
       - name: Validar gráficos locais, premissas e ausência de API externa
         run: node tests/graph-native-browser.mjs
       - name: Validar integração opcional com API de gráficos original
