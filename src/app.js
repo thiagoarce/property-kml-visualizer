@@ -2133,8 +2133,15 @@
   });
   $('clearAdvanced').addEventListener('click',clearAnalysis);
   $('exportFiltered').addEventListener('click',exportAnalysisCSV);
-  $('upload').addEventListener('change', e => { readKml(e.target.files[0]); e.target.value = ''; });
-  $('openButton').addEventListener('click', () => $('upload').click());
+  // Inputs nativos, tocados diretamente: a prévia Quick Look pode bloquear
+  // .click() programático num input oculto, sobretudo em iOS.
+  for(const id of ['upload','welcomeUpload']){
+    $(id).addEventListener('change',e=>{
+      const file=e.target.files?.[0];
+      e.target.value='';
+      if(file)readKml(file);
+    });
+  }
   $('forgetMap').addEventListener('click',async()=>{
     viewPersistenceEnabled=false;
     clearTimeout(viewTimer);
@@ -2243,7 +2250,6 @@
   });
   $('groups').addEventListener('change', () => updateFilters(true));
   const welcomeDrop=$('welcomeDrop');
-  welcomeDrop.addEventListener('click',()=> $('upload').click());
   ['dragenter','dragover'].forEach(type=>welcomeDrop.addEventListener(type,e=>{
     e.preventDefault();welcomeDrop.classList.add('dragging');
   }));
