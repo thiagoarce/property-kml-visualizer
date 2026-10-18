@@ -6,10 +6,13 @@ import assert from 'node:assert/strict';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:1440,height:900}});
-const errors=[],network=[];
+const errors=[],network=[],writes=[];
+page.on('console',msg=>{if(msg.text().startsWith('DBG VIEW'))writes.push(msg.text());});
 page.on('pageerror',e=>errors.push(e.message));
 page.on('request',r=>{if(/^https?:/.test(r.url()))network.push(r.url());});
 await page.addInitScript(()=>{
+  const put=IDBObjectStore.prototype.put;
+  IDBObjectStore.prototype.put=function(value,key){if(key==='vista')console.log('DBG VIEW '+JSON.stringify({search:value.search,workspace:value.workspace,zoom:value.zoom}));return put.call(this,value,key);};
   window.__xmlParses=0;
   const old=DOMParser.prototype.parseFromString;
   DOMParser.prototype.parseFromString=function(src,type){
@@ -74,7 +77,7 @@ try{
   await page.reload();
   await page.locator('#sessionNote').waitFor({state:'visible'});
   assert.equal(await page.evaluate(()=>window.__xmlParses),0,'Reabertura deve usar dados já interpretados');
-  console.log('DEBUG RESTORE VIEW:',JSON.stringify({db:await get('vista'),input:await page.locator('#search').inputValue(),panel:await page.locator('#territoryPanel').isVisible()}));
+  console.log('DEBUG RESTORE VIEW:',JSON.stringify({db:await get('vista'),input:await page.locator('#search').inputValue(),panel:await page.locator('#territoryPanel').isVisible(),writes}));
   assert.equal(await page.locator('#search').inputValue(),'BRA9901');
   assert.equal(await page.locator('#filteredCount').innerText(),'1');
   assert.equal(await page.locator('#territoryPanel').isVisible(),true);
