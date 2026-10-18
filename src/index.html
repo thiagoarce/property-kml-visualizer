@@ -16,13 +16,15 @@
     <div class="welcome-brand"><span class="welcome-mark">◎</span> Mapa de Planejamento</div>
     <h2>Seu mapa, pronto para explorar.</h2>
     <p>Abra um arquivo KML ou KMZ para visualizar os locais, consultar informações e aplicar filtros.</p>
-    <button type="button" class="welcome-drop" id="welcomeDrop">
+    <label class="welcome-drop native-file-target" id="welcomeDrop">
       <span class="welcome-drop-symbol" aria-hidden="true">↥</span>
       <strong>Escolher arquivo KML ou KMZ</strong>
       <small>ou arraste o arquivo para esta área</small>
-    </button>
+      <input id="welcomeUpload" class="native-file-control" type="file" aria-label="Selecionar KML ou KMZ nos arquivos do dispositivo">
+    </label>
     <div id="welcomeError" class="welcome-error" role="alert" hidden></div>
-    <span class="welcome-note">O arquivo é aberto diretamente neste computador.</span>
+    <span class="welcome-note">O arquivo é processado no próprio dispositivo. Nenhum KMZ é enviado para abrir o mapa.</span>
+    <p class="mobile-files-help">No iPhone, abra este HTML em um navegador completo. A pré-visualização do app Arquivos pode impedir o acesso ao seletor de documentos.</p>
   </div>
 </section>
 <section id="loadingScreen" class="loading-screen" aria-live="polite" aria-busy="true" hidden>
@@ -37,14 +39,16 @@
 </section>
 <header class="topbar">
   <div class="brand"><span class="logo" aria-hidden="true">◎</span><div><h1>Mapa de Planejamento</h1><small id="currentMapName">Nenhum mapa aberto</small></div></div>
-  <div class="topactions"><div class="session-note" id="sessionNote" hidden><span id="sessionText"></span><button id="forgetMap" type="button" title="Apagar o arquivo salvo neste navegador">Esquecer</button></div><button class="btn btn-quiet" id="sidebarToggle" type="button" aria-expanded="true" aria-controls="sidebar">Ocultar painel</button><button class="btn btn-main" id="openButton" type="button">Trocar arquivo</button></div>
+  <div class="topactions"><div class="session-note" id="sessionNote" hidden><span id="sessionText"></span><button id="forgetMap" type="button" title="Apagar o arquivo salvo neste navegador">Esquecer</button></div><button class="btn btn-quiet" id="sidebarToggle" type="button" aria-expanded="true" aria-controls="sidebar">Ocultar painel</button><label class="btn btn-main native-file-target native-file-switch" id="openButton">Trocar arquivo
+      <input id="upload" class="native-file-control" type="file" aria-label="Trocar arquivo KML ou KMZ">
+    </label></div>
 </header>
 <div class="layout">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
       <div class="eyebrow">MAPA ABERTO</div>
       <h2 class="file-name" id="fileName">—</h2>
-      <input id="upload" type="file" accept=".kml,.kmz,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" hidden>
+      
       <div class="stats">
         <div class="stat"><strong id="totalCount">0</strong><small>marcadores</small></div>
         <div class="stat"><strong id="filteredCount">0</strong><small>no filtro</small></div>
