@@ -48,7 +48,7 @@ try{
   await page.locator('#upload').setInputFiles({name:'SRs.kml',mimeType:'application/vnd.google-earth.kml+xml',buffer:Buffer.from(xml)});
   await page.locator('#totalCount').filter({hasText:'2'}).waitFor();
   assert.equal(await page.evaluate(()=>window.__xmlParses),1);
-  await waitForStored('ultimo',r=>r?.processed?.schema===1&&r.processed.features.length===2);
+  await waitForStored('ultimo',r=>r?.processed?.schema===2&&r.processed.features.length===2);
   const record=await get();
   assert.equal(record.processed.features.length,2);
   assert.equal(record.processed.features[0].marker,undefined,'Leaflet marker cannot be stored');
@@ -71,7 +71,7 @@ try{
   assert.equal(await get('vista'),undefined);
   await page.locator('#upload').setInputFiles(path.join(root,'exemplos','estilos-ficticios.kmz'));
   await page.locator('#fileName').filter({hasText:'estilos-ficticios.kmz'}).waitFor();
-  await waitForStored('ultimo',r=>r?.processed?.schema===1&&r.processed.iconBlobs?.length>0);
+  await waitForStored('ultimo',r=>r?.processed?.schema===2&&r.processed.iconBlobs?.length>0);
   const kmz=await get();
   assert.ok(kmz.processed.features.some(f=>Number.isInteger(f.cachedIcon)));
   await page.reload();
