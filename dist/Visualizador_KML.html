@@ -2888,24 +2888,31 @@ const BRAZIL_STATES_GEOJSON = {"type":"FeatureCollection","features":[{"type":"F
     return cleaned.replace(/\s+/g,' ').trim();
   }
   function cityFromFeature(f) {
-    // A maioria dos SRs traz a cidade somente na tabela HTML do popup,
-    // especialmente nos mapas agrupados por Macro/REC.
     const raw=String(f.description||'');
-    const labeled=raw.match(/<t[dh]\b[^>]*>[\s\S]{0,140}?\bCidade(?:\s*\/\s*UF)?\b[\s\S]{0,100}?<\/t[dh]>\s*<t[dh]\b[^>]*>([\s\S]{0,220}?)<\/t[dh]>/i);
-    let city=labeled?plainSearchContent(labeled[1]).split(/\s*\/\s*/)[0]:'';
+    // Tabelas exportadas pelo VBA têm <p> aninhados dentro de <td>.
+    // Ler células por DOM evita perder cidades como Cerquilho nesse formato.
+    const cellsDoc=new DOMParser().parseFromString(raw.replace(/<img\b[^>]*>/gi,''),'text/html');
+    let city='';
+    for(const row of cellsDoc.querySelectorAll('tr')){
+      const cells=[...row.children].filter(n=>/^(TD|TH)$/.test(n.tagName));
+      if(cells.length<2)continue;
+      const label=normalizeField(cells[0].textContent||'').replace(/\s*\/\s*/g,' ');
+      if(/^(cidade|cidade uf|municipio|city|cityname)$/.test(label)){
+        city=cells[1].textContent.trim().split(/\s*\/\s*/)[0];break;
+      }
+    }
     if(!city){
       const name=raw.match(/\b(?:AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO)\/([^<>\/]{2,80})\/BRA\d{2,6}/i);
       if(name)city=name[1].trim();
     }
     if(!city){
       for(const [key,value] of Object.entries(f.metadata||{})){
-        if(/^(?:cidade|city|physical address city|cityname)$/.test(normalizeField(key).replace(/ /g,''))){
+        if(/^(?:cidade|city|physicaladdresscity|cityname)$/.test(normalizeField(key).replace(/\s/g,''))){
           city=String(value||'').trim();break;
         }
       }
     }
     if(!city){
-      // KMLs genéricos podem trazer Estado > Cidade em vez de Macro > REC.
       const path=f.path||[];
       const candidate=path[path.length-1]||'';
       if(path.length>=2&&!/^(?:macro|rec|propriedades|resid[eê]ncias|im[oó]ve|sal[oã]o)/i.test(candidate))city=candidate.trim();
