@@ -36,7 +36,7 @@ try{
  const search=page.locator('#search');
  await search.fill('cerqui');
  await page.waitForSelector('#searchSuggestions:not([hidden])');
- let city=page.locator('.search-suggestion').filter({hasText:'Cerquilho / SP'});
+ let city=page.getByRole('option',{name:/^⌖ Cerquilho \/ SP/});
  assert.equal(await city.count(),1,'Sugerir cidade extraída do popup, não apenas da pasta');
  assert.match(await city.innerText(),/2 imóvel/);
  await page.waitForFunction(()=>document.querySelector('#foundCount').textContent==='3');
