@@ -61,7 +61,7 @@
       <button type="button" class="workspace-tab" data-workspace="legenda" aria-selected="false">Legenda</button>
     </nav>
     <section id="workspaceLocais" class="workspace-pane">
-      <div class="filter"><label for="search">Encontrar local</label><input id="search" type="search" autocomplete="off" placeholder="Buscar BRA, nome, cidade..."><select id="groups" aria-label="Filtrar por pasta"><option value="">Todas as pastas</option></select></div>
+      <div class="filter"><label for="search">Encontrar local ou cidade</label><div class="search-widget"><input id="search" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="searchSuggestions" placeholder="Cidade, BRA, rua, congregação..."><div id="searchSuggestions" class="search-suggestions" role="listbox" hidden></div></div><select id="groups" aria-label="Filtrar por pasta"><option value="">Todas as pastas</option></select></div>
       <div class="result-header"><span>Locais encontrados</span><span id="foundCount">0</span></div>
       <div class="results" id="results"></div>
     </section>
