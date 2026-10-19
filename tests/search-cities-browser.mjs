@@ -39,6 +39,7 @@ try{
  let city=page.locator('.search-suggestion').filter({hasText:'Cerquilho / SP'});
  assert.equal(await city.count(),1,'Sugerir cidade extraída do popup, não apenas da pasta');
  assert.match(await city.innerText(),/2 imóvel/);
+ await page.waitForFunction(()=>document.querySelector('#foundCount').textContent==='3');
  assert.equal(await page.locator('#foundCount').innerText(),'3','Busca textual também encontra rua e REC');
  await city.click();
  assert.equal(await page.locator('#foundCount').innerText(),'2','Clicar na cidade filtra exclusivamente imóveis da cidade');
