@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', osm: false, iconFilter: '', typeFilter: '', iconUrls: [], profile: 'generic' };
+  const state = { features: [], shapes: [], filtered: [], fileName: '', selected: null, group: '', search: '', citySearch: '', cities: [], osm: false, iconFilter: '', typeFilter: '', iconUrls: [], profile: 'generic' };
   const ALLOWED_TAGS = new Set('a b blockquote br button caption code dd div dl dt em h1 h2 h3 h4 h5 h6 hr i li ol p pre small span strong sub sup table tbody td th thead tr u ul'.split(' '));
   const BLOCKED_TAGS = new Set('script style iframe svg object embed form input select textarea link meta video audio canvas picture source'.split(' '));
   // Teto preventivo, nao uma limitacao do KML ou do OpenFreeMap.
@@ -1275,6 +1275,7 @@
       const info = document.createElement('span'); info.className = 'result-info';
       const strong = document.createElement('strong'); strong.textContent = mark.name;
       const sub = document.createElement('small'); sub.textContent = mark.path.join(' / ') || 'Sem pasta';
+      if(mark.searchCity)sub.textContent=[mark.searchCity,mark.analysis?.uf,mark.analysis?.rec].filter(Boolean).join(' · ');
       info.append(strong, sub);
       item.append(dot, info);
       item.addEventListener('click', () => selectFeature(mark));
@@ -1539,6 +1540,125 @@
     };
     f.analysis.bucket=state.profile==='srs' ? countBucket(f,f.analysis.exact):'';
   }
+  // Busca unificada offline: indexa o texto visível dos popups, sem scripts,
+  // CSS, atributos HTML, links remotos ou dados enviados a terceiros.
+  function plainSearchContent(raw) {
+    const cleaned=String(raw||'')
+      .replace(/<(?:script|style)\b[^>]*>[\s\S]*?<\/(?:script|style)\s*>/gi,' ')
+      .replace(/<!--[\s\S]*?-->/g,' ')
+      .replace(/<[^>]*>/g,' ')
+      .replace(/&(?:nbsp|#160);/gi,' ')
+      .replace(/&amp;/gi,'&')
+      .replace(/&(?:quot|#34);/gi,'"')
+      .replace(/&(?:apos|#39);/gi,"'")
+      .replace(/&(?:lt|gt);/gi,' ');
+    return cleaned.replace(/\s+/g,' ').trim();
+  }
+  function cityFromFeature(f) {
+    // A maioria dos SRs traz a cidade somente na tabela HTML do popup,
+    // especialmente nos mapas agrupados por Macro/REC.
+    const raw=String(f.description||'');
+    const labeled=raw.match(/<t[dh]\b[^>]*>[\s\S]{0,140}?\bCidade(?:\s*\/\s*UF)?\b[\s\S]{0,100}?<\/t[dh]>\s*<t[dh]\b[^>]*>([\s\S]{0,220}?)<\/t[dh]>/i);
+    let city=labeled?plainSearchContent(labeled[1]).split(/\s*\/\s*/)[0]:'';
+    if(!city){
+      const name=raw.match(/\b(?:AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO)\/([^<>\/]{2,80})\/BRA\d{2,6}/i);
+      if(name)city=name[1].trim();
+    }
+    if(!city){
+      for(const [key,value] of Object.entries(f.metadata||{})){
+        if(/^(?:cidade|city|physical address city|cityname)$/.test(normalizeField(key).replace(/ /g,''))){
+          city=String(value||'').trim();break;
+        }
+      }
+    }
+    if(!city){
+      // KMLs genéricos podem trazer Estado > Cidade em vez de Macro > REC.
+      const path=f.path||[];
+      const candidate=path[path.length-1]||'';
+      if(path.length>=2&&!/^(?:macro|rec|propriedades|resid[eê]ncias|im[oó]ve|sal[oã]o)/i.test(candidate))city=candidate.trim();
+    }
+    return city.replace(/[<>]/g,'').replace(/\s+/g,' ').slice(0,90).trim();
+  }
+  function indexSearchableFeatures() {
+    const cities=new Map();
+    for(const f of state.features){
+      if(!f.searchText||!f.searchCity){
+        const visible=plainSearchContent(f.description).slice(0,30000);
+        f.searchCity=cityFromFeature(f);
+        f.searchText=normalizeField([
+          f.name,...(f.path||[]),f.searchCity,
+          ...Object.entries(f.metadata||{}).flat(),
+          f.analysis?.uf,f.analysis?.macro,f.analysis?.rec,
+          SEMANTIC_TYPES[f.propertyType]||'',f.analysis?.status,visible
+        ].filter(Boolean).join(' '));
+      }
+      if(!f.searchCity)continue;
+      const uf=f.analysis?.uf||'';
+      const key=normalizeField(f.searchCity+' '+uf);
+      if(!cities.has(key))cities.set(key,{key,name:f.searchCity,uf,features:[]});
+      cities.get(key).features.push(f);
+      f.searchCityKey=key;
+    }
+    state.cities=[...cities.values()].sort((a,b)=>
+      a.name.localeCompare(b.name,'pt-BR')||a.uf.localeCompare(b.uf,'pt-BR'));
+  }
+  function hideSearchSuggestions() {
+    $('searchSuggestions').hidden=true;
+    $('searchSuggestions').replaceChildren();
+    $('search').setAttribute('aria-expanded','false');
+  }
+  function renderSearchSuggestions() {
+    const box=$('searchSuggestions'),q=normalizeField($('search').value);
+    const cityMatches=state.cities.filter(c=>
+      !q||normalizeField(c.name+' '+c.uf).includes(q))
+      .sort((a,b)=>{
+        if(!q)return b.features.length-a.features.length;
+        const aStart=normalizeField(a.name).startsWith(q)?0:1;
+        const bStart=normalizeField(b.name).startsWith(q)?0:1;
+        return aStart-bStart||a.name.localeCompare(b.name,'pt-BR');
+      }).slice(0,7);
+    const places=q.length>=2?state.features.filter(f=>
+      f.searchText&&q.split(' ').every(part=>f.searchText.includes(part)))
+      .slice(0,5):[];
+    box.replaceChildren();
+    function heading(label){box.append(elText('div','search-category',label));}
+    if(cityMatches.length){
+      heading(q?'CIDADES ENCONTRADAS NO MAPA':'CIDADES NO MAPA');
+      for(const city of cityMatches){
+        const item=elText('button','search-suggestion','');
+        item.type='button';item.setAttribute('role','option');
+        item.append(elText('span','search-symbol','⌖'));
+        const caption=elText('span','search-caption','');
+        caption.append(elText('strong','',city.name+(city.uf?' / '+city.uf:'')),
+          elText('small','',city.features.length.toLocaleString('pt-BR')+' imóvel(is) · centralizar'));
+        item.appendChild(caption);
+        item.addEventListener('click',()=>{
+          $('search').value=city.name;
+          state.citySearch=city.key;
+          hideSearchSuggestions();
+          updateFilters(true);
+        });
+        box.appendChild(item);
+      }
+    }
+    if(places.length){
+      heading('IMÓVEIS E OUTROS RESULTADOS');
+      for(const f of places){
+        const item=elText('button','search-suggestion','');
+        item.type='button';item.setAttribute('role','option');
+        item.append(elText('span','search-symbol','⌁'));
+        const caption=elText('span','search-caption','');
+        caption.append(elText('strong','',f.name),
+          elText('small','',[f.searchCity,f.analysis?.uf].filter(Boolean).join(' / ')||f.path.join(' / ')));
+        item.appendChild(caption);
+        item.addEventListener('click',()=>{hideSearchSuggestions();selectFeature(f);});
+        box.appendChild(item);
+      }
+    }
+    box.hidden=!box.childElementCount;
+    $('search').setAttribute('aria-expanded',String(!box.hidden));
+  }
+
   function appendOptions(select, values, allText) {
     const chosen=select.value;
     select.replaceChildren();
@@ -1572,6 +1692,8 @@
       $(name).value='';
     }
     $('search').value='';
+    state.citySearch='';
+    hideSearchSuggestions();
     $('groups').value='';
     $('question').value='';
     $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
@@ -1707,17 +1829,17 @@
   }
   function updateFilters(fit = false) {
     state.group=$('groups').value;
-    state.search=$('search').value.trim().toLocaleLowerCase('pt-BR');
+    state.search=normalizeField($('search').value);
     state.filtered=state.features.filter(f=>{
       const group=f.path.join(' / ');
       if(state.group&&group!==state.group)return false;
       if(state.iconFilter&&iconKey(f)!==state.iconFilter)return false;
       if(state.typeFilter&&f.propertyType!==state.typeFilter)return false;
       if(!analysisMatches(f))return false;
+      if(state.citySearch&&f.searchCityKey!==state.citySearch)return false;
       if(!state.search)return true;
-      const hay=(f.name+' '+group+' '+Object.values(f.metadata).join(' ')+' '+
-        (f.analysis?.uf||'')+' '+(f.analysis?.rec||'')).toLocaleLowerCase('pt-BR');
-      return hay.includes(state.search);
+      const terms=state.search.split(' ').filter(Boolean);
+      return terms.every(term=>(f.searchText||'').includes(term));
     });
     $('filteredCount').textContent=state.filtered.length.toLocaleString('pt-BR');
     $('foundCount').textContent=state.filtered.length.toLocaleString('pt-BR');
@@ -1741,6 +1863,7 @@
       if (state.profile !== 'generic') for (const f of state.features) f.propertyType = identifyProperty(f);
       for(const f of state.features)enrichFeature(f);
     }
+    indexSearchableFeatures();
     if(!opts.view)for(const name of ['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'])$(name).value='';
     $('question').value=opts.view?.question||'';
     $('questionHint').textContent='Busca local por critérios reconhecidos. Não usa IA nem envia o KML.';
@@ -1751,6 +1874,8 @@
     $('currentMapName').textContent = parsed.fileName;
     $('search').value=opts.view?.search||'';
     state.search='';state.group='';
+    state.citySearch=opts.view?.searchCity||'';
+    hideSearchSuggestions();
     renderGroups();
     if(opts.view) {
       const v=opts.view;
@@ -1882,14 +2007,14 @@
   }
   // IndexedDB guarda uma cópia do arquivo original e outra representação pronta.
   // Incrementar CACHE_SCHEMA quando parser, classificação ou índice mudarem.
-  const CACHE_SCHEMA=1;
+  const CACHE_SCHEMA=2;
   const VIEW_KEY='vista';
   let viewPersistenceEnabled=false,viewTimer=null,restoring=false;
   function captureView() {
     const center=map.getCenter();
     return {
       center:[center.lat,center.lng],zoom:map.getZoom(),
-      search:$('search').value,group:$('groups').value,
+      search:$('search').value,searchCity:state.citySearch,group:$('groups').value,
       iconFilter:state.iconFilter,typeFilter:state.typeFilter,
       filters:Object.fromEntries(['stateFilter','macroFilter','recFilter','propertyFilter','congFilter','caseFilter','groupBy'].map(k=>[k,$(k).value])),
       question:$('question').value,
@@ -2246,7 +2371,26 @@
     $(id).addEventListener('change',updateDetailPreferences);
   }
   $('search').addEventListener('input', () => {
-    clearTimeout(filterTimer); filterTimer = setTimeout(() => updateFilters(false), 180);
+    state.citySearch='';
+    clearTimeout(filterTimer);
+    filterTimer=setTimeout(()=>{updateFilters(false);renderSearchSuggestions();},140);
+  });
+  $('search').addEventListener('focus',renderSearchSuggestions);
+  $('search').addEventListener('keydown', e=>{
+    const candidates=[...$('searchSuggestions').querySelectorAll('.search-suggestion')];
+    if(e.key==='Escape'){hideSearchSuggestions();return;}
+    if(!candidates.length||$('searchSuggestions').hidden)return;
+    let active=candidates.findIndex(el=>el.classList.contains('is-active'));
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();if(active>=0)candidates[active].classList.remove('is-active');
+      active=(active+(e.key==='ArrowDown'?1:candidates.length-1))%candidates.length;
+      candidates[active].classList.add('is-active');candidates[active].scrollIntoView({block:'nearest'});
+    }else if(e.key==='Enter'){
+      e.preventDefault();(candidates[Math.max(0,active)]).click();
+    }
+  });
+  document.addEventListener('pointerdown',e=>{
+    if(!e.target.closest('.search-widget'))hideSearchSuggestions();
   });
   $('groups').addEventListener('change', () => updateFilters(true));
   const welcomeDrop=$('welcomeDrop');
