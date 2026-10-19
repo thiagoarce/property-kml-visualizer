@@ -13,7 +13,7 @@ function placemark(name,city,address,cong,rec,lon,lat){
   const html='<div id="Location"><table><tbody>'+
    '<tr><td><p class="key">Nome do Local de Reunião</p></td><td><p>SP/'+city+'/BRA'+name+'</p></td></tr>'+
    '<tr><td><p class="key">Cidade</p></td><td><p>'+city+'</p></td></tr>'+
-   '<tr><td><p class="key">Circuito</p></td><td><p>SP-169</p></td></tr>'+
+   '<tr><td><p class="key">Circuito</p></td><td><p>'+(city==='Cerquilho'?'SP-169':'SP-002')+'</p></td></tr>'+
    '<tr><td><p class="key">Endereço</p></td><td><p>'+address+'</p></td></tr>'+
    '<tr><td><p class="key">Congregação</p></td><td><p>'+cong+'</p></td></tr>'+
    '<tr><td><p class="key">REC</p></td><td><p>'+rec+'</p></td></tr>'+
