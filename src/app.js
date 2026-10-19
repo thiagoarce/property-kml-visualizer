@@ -2372,6 +2372,7 @@
   }
   $('search').addEventListener('input', () => {
     state.citySearch='';
+    hideSearchSuggestions(); // impede selecionar sugestões da pesquisa anterior durante debounce
     clearTimeout(filterTimer);
     filterTimer=setTimeout(()=>{updateFilters(false);renderSearchSuggestions();},140);
   });
