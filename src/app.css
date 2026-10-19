@@ -485,3 +485,18 @@ body.is-welcome>.topbar,body.is-welcome>.layout{visibility:hidden}
   .welcome-drop{min-height:150px}
   .mobile-files-help{display:block!important;color:#b6d4df!important;font-size:11px!important;line-height:1.55!important;margin:13px 0 0!important}
 }
+
+
+/* Busca local única: endereços + cidades do KMZ, sugestões sem geocodificação externa. */
+.search-widget{position:relative}
+.search-widget input{width:100%}
+.search-suggestions{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:1250;max-height:min(390px,55vh);overflow:auto;border:1px solid #c8dfe7;border-radius:11px;background:white;box-shadow:0 13px 30px #153b4a33;padding:5px 0}
+.search-suggestions[hidden]{display:none!important}
+.workspace-pane:has(.search-suggestions:not([hidden])) .filter{position:relative;z-index:1250}
+.search-category{font-size:9px;letter-spacing:.8px;font-weight:850;color:#78939e;padding:11px 12px 7px;background:#f4f9fb}
+.search-suggestion{display:flex;width:100%;align-items:center;text-align:left;gap:10px;border:0;border-top:1px solid #eef3f5;background:#fff;padding:10px 12px;color:#1c4053}
+.search-suggestion:hover,.search-suggestion.is-active{background:#e7f5f8}
+.search-symbol{display:grid;place-items:center;flex:0 0 24px;width:24px;height:24px;font-size:17px;color:#1281a2;background:#e4f2f6;border-radius:8px}
+.search-caption{display:block;min-width:0;flex:1}
+.search-caption strong{display:block;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.search-caption small{display:block;font-size:10px;color:#75919b;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
