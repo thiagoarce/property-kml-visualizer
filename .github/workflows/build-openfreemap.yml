@@ -82,6 +82,8 @@ jobs:
         run: node tests/dashboard-browser.mjs
       - name: Validar filtros territoriais e pesquisa sem rede
         run: node tests/territorial-filters-browser.mjs
+      - name: Validar cidades do KML e busca unificada offline
+        run: node tests/search-cities-browser.mjs
       - name: Validar popup limpo e estilos cartográficos
         run: node tests/popup-tiles-browser.mjs
       - name: Validar abas do KML e tabelas novas
